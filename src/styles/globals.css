@@ -139,6 +139,7 @@ body {
 }
 
 .chat-messages {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   padding: 24px;
@@ -146,6 +147,32 @@ body {
   flex-direction: column;
   gap: 18px;
   scroll-behavior: smooth;
+}
+
+.focus-toggle-button {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  width: fit-content;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(0, 255, 170, 0.92);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 255, 170, 0.16);
+}
+
+.focus-toggle-button:active {
+  transform: translateY(1px);
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -516,6 +543,10 @@ body {
   .chat-messages {
     padding: 18px;
     touch-action: manipulation;
+  }
+
+  .focus-toggle-button {
+    display: inline-flex;
   }
 
   .input-section {

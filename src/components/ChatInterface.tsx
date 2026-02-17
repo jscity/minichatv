@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Send, MoreHorizontal } from 'lucide-react';
+import { Plus, Send, MoreHorizontal, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -207,7 +207,6 @@ export function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
-  const touchLastTapRef = useRef(0);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -438,21 +437,6 @@ export function ChatInterface() {
     setIsFocusMode((prev) => !prev);
   }, []);
 
-  const handleMessageAreaDoubleClick = () => {
-    toggleFocusMode();
-  };
-
-  const handleMessageAreaTouchEnd = () => {
-    if (!isMobileViewport()) return;
-    const now = Date.now();
-    if (now - touchLastTapRef.current <= 320) {
-      touchLastTapRef.current = 0;
-      toggleFocusMode();
-      return;
-    }
-    touchLastTapRef.current = now;
-  };
-
   const hasMessages = messages.length > 0;
   const statusHint = routeHint || `soul:${soulMode}`;
 
@@ -474,11 +458,17 @@ export function ChatInterface() {
       )}
 
       <div className="chat-container">
-        <div
-          className="chat-messages"
-          onDoubleClick={handleMessageAreaDoubleClick}
-          onTouchEnd={handleMessageAreaTouchEnd}
-        >
+        <div className="chat-messages">
+          <button
+            type="button"
+            className="focus-toggle-button"
+            onClick={toggleFocusMode}
+            aria-label={isFocusMode ? 'Exit focus mode' : 'Enter focus mode'}
+          >
+            {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            <span>{isFocusMode ? 'BACK' : 'FULL'}</span>
+          </button>
+
           {!hasMessages && (
             <div className="welcome-message">
               <div className="ascii-art">
