@@ -32,16 +32,6 @@ const DEFAULT_PROFILE: UserProfile = {
   audienceMode: 'general'
 };
 
-const TOPIC_LABELS: Record<TopicPreference, string> = {
-  general: 'general',
-  emotion: 'emotion',
-  game: 'gaming',
-  coding: 'coding',
-  medical: 'medical',
-  elder: 'elder',
-  kids: 'kids'
-};
-
 const SOUL_OPTIONS: Array<{ value: SoulMode; label: string; className: string }> = [
   { value: 'gentle', label: 'Gentle', className: 'soul-gentle' },
   { value: 'pro', label: 'Pro', className: 'soul-pro' },
@@ -186,20 +176,11 @@ const extractText = (event: unknown): string => {
 const getRouteHint = (response: Response) => {
   const modelTier = response.headers.get('x-route-model');
   const soul = response.headers.get('x-route-soul');
-  const soulSource = response.headers.get('x-route-soul-source');
-  const tags = response.headers.get('x-route-tags');
 
   const chunks: string[] = [];
   if (modelTier) chunks.push(`model:${modelTier}`);
-  if (soul) chunks.push(`soul:${soul}${soulSource && soulSource !== 'file' ? `(${soulSource})` : ''}`);
-  if (tags) chunks.push(`tags:${tags}`);
+  if (soul) chunks.push(`soul:${soul}`);
   return chunks.join(' | ');
-};
-
-const buildStatusHint = (routeHint: string, profile: UserProfile) => {
-  const profileHint = `profile:${TOPIC_LABELS[profile.topicPreference]}/${profile.tonePreference}/${profile.audienceMode}`;
-  if (!routeHint) return profileHint;
-  return `${routeHint} | ${profileHint}`;
 };
 
 const getClientTimeZone = () => {
@@ -446,7 +427,7 @@ export function ChatInterface() {
   };
 
   const hasMessages = messages.length > 0;
-  const statusHint = buildStatusHint(routeHint, userProfile);
+  const statusHint = routeHint || `soul:${soulMode}`;
 
   return (
     <div className="retro-terminal">
