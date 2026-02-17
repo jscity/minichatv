@@ -185,6 +185,55 @@ body {
   white-space: pre-wrap;
 }
 
+.markdown-content {
+  min-width: 0;
+}
+
+.markdown-content p {
+  margin: 0 0 8px;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.markdown-content li {
+  margin: 2px 0;
+}
+
+.markdown-content code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 255, 170, 0.25);
+  background: rgba(0, 40, 0, 0.45);
+  color: var(--assistant-text);
+}
+
+.markdown-content pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 170, 0.25);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.markdown-content pre code {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-content strong {
+  color: #8fffd1;
+}
+
 .user-message .message-content span:last-child {
   color: var(--user-text);
 }

@@ -112,9 +112,10 @@ function detectSignals(text) {
   };
 }
 
-function resolveModel(signals) {
-  if (signals.highStakes || signals.complex) return DEEP_MODEL;
-  return FAST_MODEL;
+function resolveModelRoute(signals) {
+  const tier = signals.highStakes || signals.complex ? 'pro' : 'flash';
+  const model = tier === 'pro' ? DEEP_MODEL : FAST_MODEL;
+  return { tier, model };
 }
 
 function resolveTimeZone(input) {
@@ -318,7 +319,8 @@ export default async function handler(req, res) {
     const userProfile = bodyProfile || cookieProfile;
     const text = getLatestUserText(payload, rawHistory);
     const signals = detectSignals(text);
-    const model = resolveModel(signals);
+    const route = resolveModelRoute(signals);
+    const model = route.model;
     const soulMode = resolveSoulMode(payload?.soulMode || cookies.soul_mode, signals.highStakes);
     const soulText = readSoulText(soulMode);
     const runtimeContext = await buildRuntimeContext({
@@ -361,7 +363,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Route-Model', model);
+    res.setHeader('X-Route-Model', route.tier);
     res.setHeader('X-Route-Soul', soulMode);
     res.setHeader(
       'X-Route-Tags',

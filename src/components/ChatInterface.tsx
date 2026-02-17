@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Send, MoreHorizontal } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type SoulMode = 'warm' | 'sharp';
 type TopicPreference = 'general' | 'emotion' | 'game' | 'coding' | 'medical' | 'elder' | 'kids';
@@ -161,10 +163,14 @@ const extractText = (event: unknown): string => {
 };
 
 const getRouteHint = (response: Response) => {
-  const model = response.headers.get('x-route-model');
+  const modelTier = response.headers.get('x-route-model');
   const soul = response.headers.get('x-route-soul');
   const tags = response.headers.get('x-route-tags');
-  const chunks = [model, soul, tags].filter(Boolean);
+
+  const chunks: string[] = [];
+  if (modelTier) chunks.push(`model:${modelTier}`);
+  if (soul) chunks.push(`soul:${soul}`);
+  if (tags) chunks.push(`tags:${tags}`);
   return chunks.join(' | ');
 };
 
@@ -456,7 +462,13 @@ export function ChatInterface() {
                 </div>
                 <div className="message-content">
                   <span className="prompt-symbol">&gt;</span>
-                  <span>{message.content}</span>
+                  {isUser ? (
+                    <span>{message.content}</span>
+                  ) : (
+                    <div className="markdown-content">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
                 {showTyping && index === messages.length - 1 && (
                   <div className="typing-indicator">
