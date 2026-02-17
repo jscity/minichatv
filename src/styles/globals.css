@@ -292,25 +292,63 @@ body {
   color: rgba(0, 255, 170, 0.6);
 }
 
-.soul-select {
-  min-width: 136px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--panel-border);
-  background: rgba(0, 0, 0, 0.62);
-  color: var(--assistant-text);
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
+.soul-button-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.soul-select:disabled {
+.soul-button {
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.55);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.soul-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.soul-button:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.soul-gentle {
+  color: #8dffd8;
+  border-color: rgba(141, 255, 216, 0.35);
+}
+
+.soul-pro {
+  color: #93b9ff;
+  border-color: rgba(147, 185, 255, 0.35);
+}
+
+.soul-sharp {
+  color: #ffe58a;
+  border-color: rgba(255, 229, 138, 0.35);
+}
+
+.soul-savage {
+  color: #ff9a9a;
+  border-color: rgba(255, 154, 154, 0.35);
+}
+
+.soul-button.active {
+  box-shadow: 0 0 12px rgba(0, 255, 170, 0.3);
+  background: rgba(0, 40, 24, 0.65);
 }
 
 .runtime-chip {
   padding: 6px 10px;
   border: 1px solid rgba(0, 255, 170, 0.35);
-  border-radius: 999px;
+  border-radius: 10px;
   color: rgba(0, 255, 170, 0.9);
   font-size: 12px;
   background: rgba(0, 0, 0, 0.45);
@@ -319,6 +357,11 @@ body {
 .route-chip {
   color: rgba(255, 230, 109, 0.95);
   border-color: rgba(255, 230, 109, 0.4);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  margin-left: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .input-container {
@@ -455,6 +498,11 @@ body {
 
   .runtime-toolbar {
     gap: 8px;
+  }
+
+  .route-chip {
+    margin-left: 0;
+    width: 100%;
   }
 
   .action-button,

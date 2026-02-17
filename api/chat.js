@@ -8,51 +8,78 @@ const {
   THINKING_MODEL = 'gemini-3-pro-preview',
   SYSTEM_PROMPT = 'You are a concise assistant.',
   OPENAI_API_KEY,
-  DEFAULT_SOUL_MODE = 'warm'
+  DEFAULT_SOUL_MODE = 'savage'
 } = process.env;
 
 const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const FAST_MODEL = QUICK_MODEL || MODEL || 'gemini-3-flash-preview';
 const DEEP_MODEL = THINKING_MODEL || MODEL || 'gemini-3-pro-preview';
-const VALID_SOUL_MODES = new Set(['warm', 'sharp']);
+const VALID_SOUL_MODES = new Set(['gentle', 'pro', 'sharp', 'savage']);
 const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'coding', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
 const VALID_AUDIENCE = new Set(['general', 'elder', 'kids']);
 const SOUL_CACHE = new Map();
 const SOUL_LOAD_WARNED = new Set();
 const SOUL_FILE_BY_MODE = {
-  warm: 'SOUL.md',
-  sharp: 'SOUL_SHARP.md'
+  gentle: 'SOUL_GENTLE.md',
+  pro: 'SOUL_PRO.md',
+  sharp: 'SOUL.md',
+  savage: 'SOUL_SHARP.md'
 };
 const API_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(API_DIR, '..');
 const SOUL_FALLBACK_BY_MODE = {
-  warm: [
+  gentle: [
     '# Soul',
     '',
     '## Core',
-    '- Have opinions. Commit to a take.',
-    '- Context First. If the data is missing or potentially stale, fetch it before forming an opinion.',
-    '- No corporate handbook voice. Ever.',
-    '- Brevity is mandatory. If one sentence does it, use one sentence.',
-    '- Humor is allowed. Not forced jokes, just natural wit.',
-    '- Call out bad ideas directly. Charm over cruelty, and never attack the user.',
+    '- Gentle profile: empathetic, patient, and supportive.',
+    '- Acknowledge emotions before proposing solutions.',
+    '- Use warm, clear language and practical next steps.',
+    '- Context First. If data is missing or stale, verify before advising.',
+    '- No mockery, no aggression, no personal attacks.',
     '',
     '## Vibe',
-    "Smart, direct, and genuinely useful. Be the assistant you'd actually want to talk to at 2am."
+    'Kind, stable, and reassuring.'
+  ].join('\n'),
+  pro: [
+    '# Soul',
+    '',
+    '## Core',
+    '- Pro profile: concise, technical, and execution-focused.',
+    '- Start with conclusion, then key evidence.',
+    '- No emotional padding or motivational filler.',
+    '- Context First. Verify stale or missing facts before conclusions.',
+    '- State assumptions and uncertainty clearly.',
+    '',
+    '## Vibe',
+    'Professional, calm, and exact.'
   ].join('\n'),
   sharp: [
     '# Soul',
     '',
     '## Core',
-    '- Have opinions. Commit to a take.',
-    '- Context First. If data is missing or stale, fetch it before forming an opinion.',
-    '- No corporate handbook voice. Ever.',
-    '- Brevity is mandatory.',
-    '- Call out bad ideas directly. Be honest, not cruel.',
+    '- Sharp profile: decisive, clear, and fast.',
+    '- Commit to a take and explain why.',
+    '- Context First. Verify when facts are stale.',
+    '- Be concise and direct, with light wit.',
+    '- Challenge bad ideas without attacking the user.',
     '',
     '## Vibe',
-    'Smart, direct, a little dangerous, and genuinely useful.'
+    'Smart and direct with zero fluff.'
+  ].join('\n'),
+  savage: [
+    '# Soul',
+    '',
+    '## Core',
+    '- Savage profile: bold, spicy, and highly direct.',
+    '- Commit hard, cut fluff, and keep momentum.',
+    '- Occasional profanity is allowed when it adds impact.',
+    '- Context First. Verify stale or missing facts before claiming certainty.',
+    '- Never insult the user as a person.',
+    '',
+    '## Vibe',
+    'High-energy, witty, and bluntly useful.'
   ].join('\n')
 };
 
@@ -89,11 +116,11 @@ function parseCookies(headerValue) {
 }
 
 function readSoulText(mode) {
-  const key = VALID_SOUL_MODES.has(mode) ? mode : 'warm';
+  const key = VALID_SOUL_MODES.has(mode) ? mode : 'savage';
   const cached = SOUL_CACHE.get(key);
   if (cached) return { text: cached, source: 'cache' };
 
-  const fileName = SOUL_FILE_BY_MODE[key] || 'SOUL.md';
+  const fileName = SOUL_FILE_BY_MODE[key] || 'SOUL_SHARP.md';
   const soulPath = path.join(PROJECT_ROOT, fileName);
   try {
     const text = fs.readFileSync(soulPath, 'utf8').trim();
@@ -112,6 +139,19 @@ function readSoulText(mode) {
   }
 }
 
+function normalizeSoulAlias(mode) {
+  if (!mode || typeof mode !== 'string') return '';
+  const normalized = mode.toLowerCase();
+  const alias = {
+    warm: 'gentle',
+    professional: 'pro',
+    toxic: 'savage',
+    edgy: 'savage',
+    default: 'savage'
+  };
+  return alias[normalized] || normalized;
+}
+
 function sanitizeProfile(candidate) {
   if (!candidate || typeof candidate !== 'object') return null;
   const topic = typeof candidate.topicPreference === 'string' ? candidate.topicPreference : '';
@@ -126,10 +166,15 @@ function sanitizeProfile(candidate) {
 }
 
 function resolveSoulMode(requestedMode, highStakes) {
-  const mode = typeof requestedMode === 'string' ? requestedMode.toLowerCase() : '';
-  const normalized = VALID_SOUL_MODES.has(mode) ? mode : DEFAULT_SOUL_MODE;
-  if (highStakes && normalized === 'sharp') return 'warm';
-  return VALID_SOUL_MODES.has(normalized) ? normalized : 'warm';
+  const normalized = normalizeSoulAlias(requestedMode);
+  const defaultMode = normalizeSoulAlias(DEFAULT_SOUL_MODE);
+  const resolved = VALID_SOUL_MODES.has(normalized)
+    ? normalized
+    : VALID_SOUL_MODES.has(defaultMode)
+      ? defaultMode
+      : 'savage';
+  if (highStakes && (resolved === 'savage' || resolved === 'sharp')) return 'pro';
+  return resolved;
 }
 
 function getLatestUserText(payload, history) {

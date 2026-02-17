@@ -7,7 +7,7 @@
 - ⚡️ `/api/chat` 支持流式响应，按问题类型自动路由到快模型或思考模型。
 - 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、在线新闻快照。
 - 🧠 轻量偏好记忆（cookie）：按话题/语气/受众模式进行回答风格微调。
-- 🎭 双灵魂模式：`Warm`（默认）与 `Sharp`，高风险问题会自动回退到更稳健风格。
+- 🎭 四灵魂模式：`Gentle`、`Pro`、`Sharp`、`Savage`（默认）；高风险问题会自动回退到更稳健风格。
 - 📝 支持 Markdown 渲染，列表、强调、代码块不再显示原始符号。
 - 🖥️ 复古终端风格界面，自动滚动、输入框高度自适应、打字中提示等交互。
 - 🧱 React + Vite 前端构建，产物由 Express 静态托管。
@@ -69,7 +69,7 @@ Install Command: npm install
 OPENAI_API_KEY=你的真实密钥
 QUICK_MODEL=gemini-3-flash-preview     # 可选
 THINKING_MODEL=gemini-3-pro-preview    # 可选
-DEFAULT_SOUL_MODE=warm                 # 可选: warm 或 sharp
+DEFAULT_SOUL_MODE=savage               # 可选: gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
 ```
 
@@ -81,7 +81,7 @@ SYSTEM_PROMPT=You are a concise assistant.   # 可选
 | `QUICK_MODEL` | 快速模型（普通问题） | `gemini-3-flash-preview` |
 | `THINKING_MODEL` | 思考模型（高风险/复杂问题） | `gemini-3-pro-preview` |
 | `MODEL` | 全局兜底模型（兼容旧配置） | 空 |
-| `DEFAULT_SOUL_MODE` | 默认灵魂模式 | `warm` |
+| `DEFAULT_SOUL_MODE` | 默认灵魂模式 | `savage` |
 | `SYSTEM_PROMPT` | 系统提示词 | `You are a concise assistant.` |
 | `PORT` | 服务监听端口 | `8787` |
 
@@ -96,8 +96,10 @@ mini-chat-figma-app/
 ├── vercel.json
 ├── api/
 │   └── chat.js             # Vercel Serverless API
-├── SOUL.md                 # 默认 Warm 灵魂
-├── SOUL_SHARP.md           # Sharp 灵魂
+├── SOUL_GENTLE.md          # Gentle 灵魂
+├── SOUL_PRO.md             # Pro 灵魂
+├── SOUL.md                 # Sharp 灵魂
+├── SOUL_SHARP.md           # Savage 灵魂
 ├── server.js              # Express + 流式代理
 ├── src/
 │   ├── App.tsx

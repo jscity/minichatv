@@ -3,7 +3,7 @@ import { Plus, Send, MoreHorizontal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-type SoulMode = 'warm' | 'sharp';
+type SoulMode = 'gentle' | 'pro' | 'sharp' | 'savage';
 type TopicPreference = 'general' | 'emotion' | 'game' | 'coding' | 'medical' | 'elder' | 'kids';
 type TonePreference = 'balanced' | 'warm' | 'direct' | 'professional';
 type AudienceMode = 'general' | 'elder' | 'kids';
@@ -25,6 +25,7 @@ interface Message {
 
 const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
+const DEFAULT_SOUL_MODE: SoulMode = 'savage';
 const DEFAULT_PROFILE: UserProfile = {
   topicPreference: 'general',
   tonePreference: 'balanced',
@@ -32,13 +33,33 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 const TOPIC_LABELS: Record<TopicPreference, string> = {
-  general: '通用',
-  emotion: '情感',
-  game: '游戏',
-  coding: '开发',
-  medical: '医疗',
-  elder: '老年',
-  kids: '儿童'
+  general: 'general',
+  emotion: 'emotion',
+  game: 'gaming',
+  coding: 'coding',
+  medical: 'medical',
+  elder: 'elder',
+  kids: 'kids'
+};
+
+const SOUL_OPTIONS: Array<{ value: SoulMode; label: string; className: string }> = [
+  { value: 'gentle', label: 'Gentle', className: 'soul-gentle' },
+  { value: 'pro', label: 'Pro', className: 'soul-pro' },
+  { value: 'sharp', label: 'Sharp', className: 'soul-sharp' },
+  { value: 'savage', label: 'Savage', className: 'soul-savage' }
+];
+
+const normalizeSoulMode = (value: string): SoulMode => {
+  const normalized = value.toLowerCase();
+  const alias: Record<string, SoulMode> = {
+    warm: 'gentle',
+    professional: 'pro',
+    toxic: 'savage',
+    edgy: 'savage'
+  };
+  const mapped = alias[normalized] || normalized;
+  if (mapped === 'gentle' || mapped === 'pro' || mapped === 'sharp' || mapped === 'savage') return mapped;
+  return DEFAULT_SOUL_MODE;
 };
 
 const formatTime = (iso: string) => {
@@ -170,9 +191,15 @@ const getRouteHint = (response: Response) => {
 
   const chunks: string[] = [];
   if (modelTier) chunks.push(`model:${modelTier}`);
-  if (soul) chunks.push(`soul:${soul}${soulSource ? `(${soulSource})` : ''}`);
+  if (soul) chunks.push(`soul:${soul}${soulSource && soulSource !== 'file' ? `(${soulSource})` : ''}`);
   if (tags) chunks.push(`tags:${tags}`);
   return chunks.join(' | ');
+};
+
+const buildStatusHint = (routeHint: string, profile: UserProfile) => {
+  const profileHint = `profile:${TOPIC_LABELS[profile.topicPreference]}/${profile.tonePreference}/${profile.audienceMode}`;
+  if (!routeHint) return profileHint;
+  return `${routeHint} | ${profileHint}`;
 };
 
 const getClientTimeZone = () => {
@@ -189,7 +216,7 @@ export function ChatInterface() {
   const [isSending, setIsSending] = useState(false);
   const [soulMode, setSoulMode] = useState<SoulMode>(() => {
     const saved = readCookie(SOUL_COOKIE);
-    return saved === 'sharp' ? 'sharp' : 'warm';
+    return saved ? normalizeSoulMode(saved) : DEFAULT_SOUL_MODE;
   });
   const [userProfile, setUserProfile] = useState<UserProfile>(() => parseProfileCookie());
   const [routeHint, setRouteHint] = useState('');
@@ -419,6 +446,7 @@ export function ChatInterface() {
   };
 
   const hasMessages = messages.length > 0;
+  const statusHint = buildStatusHint(routeHint, userProfile);
 
   return (
     <div className="retro-terminal">
@@ -485,21 +513,21 @@ export function ChatInterface() {
 
         <div className="input-section">
           <div className="runtime-toolbar">
-            <label htmlFor="soul-mode" className="runtime-label">
-              SOUL
-            </label>
-            <select
-              id="soul-mode"
-              className="soul-select"
-              value={soulMode}
-              onChange={(event) => setSoulMode(event.target.value as SoulMode)}
-              disabled={isSending}
-            >
-              <option value="warm">Warm (默认)</option>
-              <option value="sharp">Sharp</option>
-            </select>
-            <span className="runtime-chip">偏好: {TOPIC_LABELS[userProfile.topicPreference]}</span>
-            {routeHint && <span className="runtime-chip route-chip">{routeHint}</span>}
+            <span className="runtime-label">SOUL</span>
+            <div className="soul-button-group">
+              {SOUL_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSoulMode(option.value)}
+                  disabled={isSending}
+                  className={`soul-button ${option.className}${soulMode === option.value ? ' active' : ''}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <span className="runtime-chip route-chip">{statusHint}</span>
           </div>
 
           <div className="input-container">
