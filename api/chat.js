@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const {
   MODEL,
@@ -18,9 +19,41 @@ const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'coding', 'medical',
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
 const VALID_AUDIENCE = new Set(['general', 'elder', 'kids']);
 const SOUL_CACHE = new Map();
+const SOUL_LOAD_WARNED = new Set();
 const SOUL_FILE_BY_MODE = {
   warm: 'SOUL.md',
   sharp: 'SOUL_SHARP.md'
+};
+const API_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(API_DIR, '..');
+const SOUL_FALLBACK_BY_MODE = {
+  warm: [
+    '# Soul',
+    '',
+    '## Core',
+    '- Have opinions. Commit to a take.',
+    '- Context First. If the data is missing or potentially stale, fetch it before forming an opinion.',
+    '- No corporate handbook voice. Ever.',
+    '- Brevity is mandatory. If one sentence does it, use one sentence.',
+    '- Humor is allowed. Not forced jokes, just natural wit.',
+    '- Call out bad ideas directly. Charm over cruelty, and never attack the user.',
+    '',
+    '## Vibe',
+    "Smart, direct, and genuinely useful. Be the assistant you'd actually want to talk to at 2am."
+  ].join('\n'),
+  sharp: [
+    '# Soul',
+    '',
+    '## Core',
+    '- Have opinions. Commit to a take.',
+    '- Context First. If data is missing or stale, fetch it before forming an opinion.',
+    '- No corporate handbook voice. Ever.',
+    '- Brevity is mandatory.',
+    '- Call out bad ideas directly. Be honest, not cruel.',
+    '',
+    '## Vibe',
+    'Smart, direct, a little dangerous, and genuinely useful.'
+  ].join('\n')
 };
 
 const HIGH_STAKES_RE =
@@ -58,16 +91,24 @@ function parseCookies(headerValue) {
 function readSoulText(mode) {
   const key = VALID_SOUL_MODES.has(mode) ? mode : 'warm';
   const cached = SOUL_CACHE.get(key);
-  if (cached) return cached;
+  if (cached) return { text: cached, source: 'cache' };
 
   const fileName = SOUL_FILE_BY_MODE[key] || 'SOUL.md';
-  const soulPath = path.join(process.cwd(), fileName);
+  const soulPath = path.join(PROJECT_ROOT, fileName);
   try {
     const text = fs.readFileSync(soulPath, 'utf8').trim();
     SOUL_CACHE.set(key, text);
-    return text;
-  } catch {
-    return SYSTEM_PROMPT;
+    return { text, source: 'file' };
+  } catch (err) {
+    if (!SOUL_LOAD_WARNED.has(fileName)) {
+      SOUL_LOAD_WARNED.add(fileName);
+      const message = err instanceof Error ? err.message : String(err || 'unknown');
+      console.warn(`[SOUL] Failed to load ${fileName} from ${soulPath}: ${message}`);
+    }
+    return {
+      text: SOUL_FALLBACK_BY_MODE[key] || SYSTEM_PROMPT,
+      source: 'fallback'
+    };
   }
 }
 
@@ -322,7 +363,8 @@ export default async function handler(req, res) {
     const route = resolveModelRoute(signals);
     const model = route.model;
     const soulMode = resolveSoulMode(payload?.soulMode || cookies.soul_mode, signals.highStakes);
-    const soulText = readSoulText(soulMode);
+    const soulResult = readSoulText(soulMode);
+    const soulText = soulResult.text;
     const runtimeContext = await buildRuntimeContext({
       text,
       clientTimeZone: payload?.clientTimeZone || cookies.client_tz,
@@ -365,6 +407,7 @@ export default async function handler(req, res) {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Route-Model', route.tier);
     res.setHeader('X-Route-Soul', soulMode);
+    res.setHeader('X-Route-Soul-Source', soulResult.source);
     res.setHeader(
       'X-Route-Tags',
       [

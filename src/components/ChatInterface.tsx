@@ -165,11 +165,12 @@ const extractText = (event: unknown): string => {
 const getRouteHint = (response: Response) => {
   const modelTier = response.headers.get('x-route-model');
   const soul = response.headers.get('x-route-soul');
+  const soulSource = response.headers.get('x-route-soul-source');
   const tags = response.headers.get('x-route-tags');
 
   const chunks: string[] = [];
   if (modelTier) chunks.push(`model:${modelTier}`);
-  if (soul) chunks.push(`soul:${soul}`);
+  if (soul) chunks.push(`soul:${soul}${soulSource ? `(${soulSource})` : ''}`);
   if (tags) chunks.push(`tags:${tags}`);
   return chunks.join(' | ');
 };
