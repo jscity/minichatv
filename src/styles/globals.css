@@ -230,6 +230,48 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.runtime-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.runtime-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(0, 255, 170, 0.6);
+}
+
+.soul-select {
+  min-width: 136px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--assistant-text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}
+
+.soul-select:disabled {
+  opacity: 0.6;
+}
+
+.runtime-chip {
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 255, 170, 0.35);
+  border-radius: 999px;
+  color: rgba(0, 255, 170, 0.9);
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.route-chip {
+  color: rgba(255, 230, 109, 0.95);
+  border-color: rgba(255, 230, 109, 0.4);
+}
+
 .input-container {
   display: flex;
   gap: 12px;
@@ -360,6 +402,10 @@ body {
 
   .button-group {
     flex-direction: column;
+  }
+
+  .runtime-toolbar {
+    gap: 8px;
   }
 
   .action-button,

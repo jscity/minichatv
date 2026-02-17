@@ -1,6 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, Send, MoreHorizontal } from 'lucide-react';
 
+type SoulMode = 'warm' | 'sharp';
+type TopicPreference = 'general' | 'emotion' | 'game' | 'coding' | 'medical' | 'elder' | 'kids';
+type TonePreference = 'balanced' | 'warm' | 'direct' | 'professional';
+type AudienceMode = 'general' | 'elder' | 'kids';
+
+interface UserProfile {
+  topicPreference: TopicPreference;
+  tonePreference: TonePreference;
+  audienceMode: AudienceMode;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -9,6 +20,24 @@ interface Message {
   isStreaming?: boolean;
   isError?: boolean;
 }
+
+const SOUL_COOKIE = 'soul_mode';
+const PROFILE_COOKIE = 'mini_pref';
+const DEFAULT_PROFILE: UserProfile = {
+  topicPreference: 'general',
+  tonePreference: 'balanced',
+  audienceMode: 'general'
+};
+
+const TOPIC_LABELS: Record<TopicPreference, string> = {
+  general: '通用',
+  emotion: '情感',
+  game: '游戏',
+  coding: '开发',
+  medical: '医疗',
+  elder: '老年',
+  kids: '儿童'
+};
 
 const formatTime = (iso: string) => {
   try {
@@ -21,6 +50,74 @@ const formatTime = (iso: string) => {
   } catch (_) {
     return '';
   }
+};
+
+const readCookie = (name: string) => {
+  const encodedName = `${name}=`;
+  const parts = document.cookie.split(';');
+  for (const rawPart of parts) {
+    const part = rawPart.trim();
+    if (!part.startsWith(encodedName)) continue;
+    return decodeURIComponent(part.slice(encodedName.length));
+  }
+  return '';
+};
+
+const writeCookie = (name: string, value: string, days = 180) => {
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+const parseProfileCookie = (): UserProfile => {
+  try {
+    const raw = readCookie(PROFILE_COOKIE);
+    if (!raw) return DEFAULT_PROFILE;
+    const parsed = JSON.parse(raw) as Partial<UserProfile>;
+    return {
+      topicPreference: parsed.topicPreference || 'general',
+      tonePreference: parsed.tonePreference || 'balanced',
+      audienceMode: parsed.audienceMode || 'general'
+    };
+  } catch {
+    return DEFAULT_PROFILE;
+  }
+};
+
+const inferProfileFromText = (text: string, prev: UserProfile): UserProfile => {
+  const normalized = text.toLowerCase();
+  const next: UserProfile = { ...prev };
+
+  if (/(情感|恋爱|关系|焦虑|倾诉|安慰|emotion|relationship|feeling)/i.test(normalized)) {
+    next.topicPreference = 'emotion';
+  } else if (/(游戏|攻略|通关|boss|steam|王者|lol|game|gaming)/i.test(normalized)) {
+    next.topicPreference = 'game';
+  } else if (/(代码|编程|开发|调试|bug|api|python|javascript|react|程序)/i.test(normalized)) {
+    next.topicPreference = 'coding';
+  } else if (/(医疗|医生|病|症状|用药|诊断|medical|health|treatment)/i.test(normalized)) {
+    next.topicPreference = 'medical';
+  } else if (/(老人|老年|长辈|退休|elder|senior)/i.test(normalized)) {
+    next.topicPreference = 'elder';
+  } else if (/(孩子|小朋友|儿童|宝宝|kid|child)/i.test(normalized)) {
+    next.topicPreference = 'kids';
+  }
+
+  if (/(温柔|共情|安慰|鼓励|warm|empathetic)/i.test(normalized)) {
+    next.tonePreference = 'warm';
+  } else if (/(直接|简洁|简短|别废话|concise|direct)/i.test(normalized)) {
+    next.tonePreference = 'direct';
+  } else if (/(专业|严谨|正式|professional|formal)/i.test(normalized)) {
+    next.tonePreference = 'professional';
+  }
+
+  if (/(老人|老年|长辈|爸妈|elder|senior)/i.test(normalized)) {
+    next.audienceMode = 'elder';
+  } else if (/(孩子|小朋友|儿童|kid|child)/i.test(normalized)) {
+    next.audienceMode = 'kids';
+  } else if (/(普通用户|通用|general)/i.test(normalized)) {
+    next.audienceMode = 'general';
+  }
+
+  return next;
 };
 
 const extractText = (event: unknown): string => {
@@ -63,10 +160,32 @@ const extractText = (event: unknown): string => {
   return '';
 };
 
+const getRouteHint = (response: Response) => {
+  const model = response.headers.get('x-route-model');
+  const soul = response.headers.get('x-route-soul');
+  const tags = response.headers.get('x-route-tags');
+  const chunks = [model, soul, tags].filter(Boolean);
+  return chunks.join(' | ');
+};
+
+const getClientTimeZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [soulMode, setSoulMode] = useState<SoulMode>(() => {
+    const saved = readCookie(SOUL_COOKIE);
+    return saved === 'sharp' ? 'sharp' : 'warm';
+  });
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => parseProfileCookie());
+  const [routeHint, setRouteHint] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
@@ -74,6 +193,14 @@ export function ChatInterface() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    writeCookie(SOUL_COOKIE, soulMode, 365);
+  }, [soulMode]);
+
+  useEffect(() => {
+    writeCookie(PROFILE_COOKIE, JSON.stringify(userProfile), 180);
+  }, [userProfile]);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const behavior = smooth ? 'smooth' : 'auto';
@@ -99,6 +226,7 @@ export function ChatInterface() {
     setMessages([]);
     setInput('');
     setIsSending(false);
+    setRouteHint('');
     queueMicrotask(() => textareaRef.current?.focus());
   };
 
@@ -122,25 +250,37 @@ export function ChatInterface() {
       isStreaming: true
     };
 
-    setMessages(prev => [...prev, userMessage, assistantMessage]);
+    const nextProfile = inferProfileFromText(text, userProfile);
+    setUserProfile(nextProfile);
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput('');
     setIsSending(true);
 
     const history = [...messagesRef.current, userMessage]
-      .filter(msg => !msg.isError)
-      .map(msg => ({ role: msg.role, content: msg.content }));
+      .filter((msg) => !msg.isError)
+      .map((msg) => ({ role: msg.role, content: msg.content }));
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, history })
+        body: JSON.stringify({
+          text,
+          history,
+          soulMode,
+          userProfile: nextProfile,
+          clientTimeZone: getClientTimeZone(),
+          locale: navigator.language || 'zh-CN'
+        })
       });
 
       if (!response.ok) {
         const detail = await response.text().catch(() => '');
         throw new Error(detail || `请求失败 (${response.status})`);
       }
+
+      setRouteHint(getRouteHint(response));
 
       if (!response.body) {
         throw new Error('服务器没有返回内容');
@@ -153,13 +293,7 @@ export function ChatInterface() {
       let hasError = false;
 
       const updateAssistant = (next: Partial<Message>) => {
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === assistantMessage.id
-              ? { ...msg, ...next }
-              : msg
-          )
-        );
+        setMessages((prev) => prev.map((msg) => (msg.id === assistantMessage.id ? { ...msg, ...next } : msg)));
       };
 
       const processPayload = (payload: string) => {
@@ -235,8 +369,8 @@ export function ChatInterface() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : '请求失败';
-      setMessages(prev =>
-        prev.map(msg =>
+      setMessages((prev) =>
+        prev.map((msg) =>
           msg.id === assistantMessage.id
             ? {
                 ...msg,
@@ -300,7 +434,7 @@ export function ChatInterface() {
             <div className="welcome-message">
               <div className="ascii-art">
                 ╔══════════════════════════════╗<br />
-                ║&nbsp;&nbsp;RETRO CHAT SYSTEM - v1.0.1&nbsp;&nbsp;║<br />
+                ║&nbsp;&nbsp;RETRO CHAT SYSTEM - v1.1.0&nbsp;&nbsp;║<br />
                 ║&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;║<br />
                 ╚══════════════════════════════╝
               </div>
@@ -337,6 +471,24 @@ export function ChatInterface() {
         </div>
 
         <div className="input-section">
+          <div className="runtime-toolbar">
+            <label htmlFor="soul-mode" className="runtime-label">
+              SOUL
+            </label>
+            <select
+              id="soul-mode"
+              className="soul-select"
+              value={soulMode}
+              onChange={(event) => setSoulMode(event.target.value as SoulMode)}
+              disabled={isSending}
+            >
+              <option value="warm">Warm (默认)</option>
+              <option value="sharp">Sharp</option>
+            </select>
+            <span className="runtime-chip">偏好: {TOPIC_LABELS[userProfile.topicPreference]}</span>
+            {routeHint && <span className="runtime-chip route-chip">{routeHint}</span>}
+          </div>
+
           <div className="input-container">
             <div className="input-prompt">
               <span className="prompt-symbol">&gt;</span>
