@@ -8,6 +8,7 @@
 - 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、在线新闻快照。
 - 🧠 轻量偏好记忆（cookie）：按话题/语气/受众模式进行回答风格微调。
 - 🎭 四灵魂模式：`Gentle`、`Pro`、`Sharp`、`Savage`（默认）；高风险问题会自动回退到更稳健风格。
+- 🔐 首次访问需要输入密码（来自 `PASSCODE.md`），通过后写入 cookie，cookie 有效期内免重复输入。
 - 📝 支持 Markdown 渲染，列表、强调、代码块不再显示原始符号。
 - 🖥️ 复古终端风格界面，自动滚动、输入框高度自适应、打字中提示等交互。
 - 🧱 React + Vite 前端构建，产物由 Express 静态托管。
@@ -95,7 +96,9 @@ mini-chat-figma-app/
 ├── docker-compose.yml
 ├── vercel.json
 ├── api/
-│   └── chat.js             # Vercel Serverless API
+│   ├── chat.js             # Vercel Serverless API
+│   └── unlock.js           # Passcode verify API
+├── PASSCODE.md             # 登录口令（默认 8086）
 ├── SOUL_GENTLE.md          # Gentle 灵魂
 ├── SOUL_PRO.md             # Pro 灵魂
 ├── SOUL.md                 # Sharp 灵魂

@@ -5,6 +5,9 @@
   "functions": {
     "api/chat.js": {
       "includeFiles": "SOUL*.md"
+    },
+    "api/unlock.js": {
+      "includeFiles": "PASSCODE.md"
     }
   },
   "rewrites": [

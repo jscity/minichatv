@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chatHandler from './api/chat.js';
+import unlockHandler from './api/unlock.js';
 
 const { PORT = 8787, OPENAI_API_KEY } = process.env;
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use(express.static(distDir));
 app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 app.post('/api/chat', chatHandler);
+app.post('/api/unlock', unlockHandler);
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();

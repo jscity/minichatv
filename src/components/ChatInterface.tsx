@@ -25,14 +25,18 @@ interface Message {
 
 const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
+const UNLOCK_COOKIE = 'terminal_unlock';
 const DEFAULT_SOUL_MODE: SoulMode = 'savage';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.0.0';
 const DISPLAY_VERSION = `v${APP_VERSION}`;
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
 const DEFAULT_PROFILE: UserProfile = {
   topicPreference: 'general',
   tonePreference: 'balanced',
   audienceMode: 'general'
 };
+
+const MOBILE_DIAL_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del'] as const;
 
 const SOUL_OPTIONS: Array<{ value: SoulMode; label: string; className: string }> = [
   { value: 'gentle', label: 'Gentle', className: 'soul-gentle' },
@@ -193,7 +197,15 @@ const getClientTimeZone = () => {
   }
 };
 
+const isMobileViewport = () =>
+  typeof window !== 'undefined' && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+
 export function ChatInterface() {
+  const [isUnlocked, setIsUnlocked] = useState(() => readCookie(UNLOCK_COOKIE) === '1');
+  const [isMobileDevice, setIsMobileDevice] = useState(() => isMobileViewport());
+  const [unlockInput, setUnlockInput] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  const [isUnlocking, setIsUnlocking] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -209,6 +221,21 @@ export function ChatInterface() {
   const messagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia(MOBILE_BREAKPOINT_QUERY);
+    const onChange = () => setIsMobileDevice(media.matches);
+
+    onChange();
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', onChange);
+      return () => media.removeEventListener('change', onChange);
+    }
+
+    media.addListener(onChange);
+    return () => media.removeListener(onChange);
+  }, []);
+
+  useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
@@ -219,6 +246,54 @@ export function ChatInterface() {
   useEffect(() => {
     writeCookie(PROFILE_COOKIE, JSON.stringify(userProfile), 180);
   }, [userProfile]);
+
+  const submitUnlock = useCallback(async (candidate: string) => {
+    const password = candidate.trim();
+    if (!password || isUnlocking) return;
+
+    setUnlockError('');
+    setIsUnlocking(true);
+
+    try {
+      const response = await fetch('/api/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid passcode');
+      }
+
+      writeCookie(UNLOCK_COOKIE, '1', 30);
+      setIsUnlocked(true);
+      setUnlockInput('');
+    } catch {
+      setUnlockError('Wrong passcode');
+    } finally {
+      setIsUnlocking(false);
+    }
+  }, [isUnlocking]);
+
+  const appendDialDigit = (digit: string) => {
+    if (isUnlocking) return;
+    if (digit === 'clear') {
+      setUnlockInput('');
+      setUnlockError('');
+      return;
+    }
+    if (digit === 'del') {
+      setUnlockInput((prev) => prev.slice(0, -1));
+      setUnlockError('');
+      return;
+    }
+
+    setUnlockInput((prev) => {
+      if (prev.length >= 12) return prev;
+      return `${prev}${digit}`;
+    });
+    setUnlockError('');
+  };
 
   const scrollToBottom = useCallback((smooth = true) => {
     const behavior = smooth ? 'smooth' : 'auto';
@@ -429,16 +504,85 @@ export function ChatInterface() {
     }
   };
 
-  const isMobileViewport = () =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
-
   const toggleFocusMode = useCallback(() => {
     if (!isMobileViewport()) return;
     setIsFocusMode((prev) => !prev);
   }, []);
 
+  const handleDesktopUnlockSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submitUnlock(unlockInput);
+  };
+
   const hasMessages = messages.length > 0;
   const statusHint = routeHint || `soul:${soulMode}`;
+  const unlockDots = Array.from({ length: Math.max(4, Math.min(8, unlockInput.length || 4)) });
+
+  if (!isUnlocked) {
+    return (
+      <div className="retro-terminal lock-shell">
+        <div className="lock-screen">
+          {isMobileDevice ? (
+            <div className="mobile-lock-panel">
+              <div className="lock-title">SECURE TERMINAL</div>
+              <div className="lock-subtitle">Enter passcode to continue</div>
+              <div className="dial-dots" aria-label="Passcode dots">
+                {unlockDots.map((_, idx) => (
+                  <span key={`dot-${idx}`} className={`dial-dot${idx < unlockInput.length ? ' active' : ''}`} />
+                ))}
+              </div>
+              <div className="dial-grid">
+                {MOBILE_DIAL_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`dial-key${key === 'clear' || key === 'del' ? ' control' : ''}`}
+                    onClick={() => appendDialDigit(key)}
+                    disabled={isUnlocking}
+                  >
+                    {key === 'clear' ? 'CLR' : key === 'del' ? 'DEL' : key}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="dial-submit"
+                onClick={() => void submitUnlock(unlockInput)}
+                disabled={isUnlocking || unlockInput.length === 0}
+              >
+                {isUnlocking ? 'CHECKING...' : 'UNLOCK'}
+              </button>
+              {unlockError && <div className="lock-error">{unlockError}</div>}
+            </div>
+          ) : (
+            <div className="desktop-lock-panel">
+              <div className="lock-title">SYSTEM LOGIN</div>
+              <div className="lock-subtitle">Keyboard input required</div>
+              <form className="desktop-lock-form" onSubmit={handleDesktopUnlockSubmit}>
+                <input
+                  type="password"
+                  className="desktop-pass-input"
+                  autoFocus
+                  value={unlockInput}
+                  onChange={(event) => {
+                    setUnlockInput(event.target.value);
+                    setUnlockError('');
+                  }}
+                  placeholder="Passcode"
+                  disabled={isUnlocking}
+                />
+                <button type="submit" className="desktop-unlock-button" disabled={isUnlocking || !unlockInput.trim()}>
+                  {isUnlocking ? 'VERIFYING...' : 'UNLOCK'}
+                </button>
+              </form>
+              {unlockError && <div className="lock-error">{unlockError}</div>}
+            </div>
+          )}
+        </div>
+        <div className="scanlines" aria-hidden="true" />
+      </div>
+    );
+  }
 
   return (
     <div className={`retro-terminal soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
@@ -466,7 +610,6 @@ export function ChatInterface() {
             aria-label={isFocusMode ? 'Exit focus mode' : 'Enter focus mode'}
           >
             {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            <span>{isFocusMode ? 'BACK' : 'FULL'}</span>
           </button>
 
           {!hasMessages && (
