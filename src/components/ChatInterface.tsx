@@ -26,6 +26,8 @@ interface Message {
 const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
 const DEFAULT_SOUL_MODE: SoulMode = 'savage';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.0.0';
+const DISPLAY_VERSION = `v${APP_VERSION}`;
 const DEFAULT_PROFILE: UserProfile = {
   topicPreference: 'general',
   tonePreference: 'balanced',
@@ -195,6 +197,7 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const [soulMode, setSoulMode] = useState<SoulMode>(() => {
     const saved = readCookie(SOUL_COOKIE);
     return saved ? normalizeSoulMode(saved) : DEFAULT_SOUL_MODE;
@@ -204,6 +207,7 @@ export function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
+  const touchLastTapRef = useRef(0);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -426,31 +430,60 @@ export function ChatInterface() {
     }
   };
 
+  const isMobileViewport = () =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+
+  const toggleFocusMode = useCallback(() => {
+    if (!isMobileViewport()) return;
+    setIsFocusMode((prev) => !prev);
+  }, []);
+
+  const handleMessageAreaDoubleClick = () => {
+    toggleFocusMode();
+  };
+
+  const handleMessageAreaTouchEnd = () => {
+    if (!isMobileViewport()) return;
+    const now = Date.now();
+    if (now - touchLastTapRef.current <= 320) {
+      touchLastTapRef.current = 0;
+      toggleFocusMode();
+      return;
+    }
+    touchLastTapRef.current = now;
+  };
+
   const hasMessages = messages.length > 0;
   const statusHint = routeHint || `soul:${soulMode}`;
 
   return (
-    <div className="retro-terminal">
-      <div className="terminal-header">
-        <div className="terminal-title">
-          <span className="terminal-symbol">&gt;</span>
-          <span className="blinking-cursor">_</span>
-          <span className="title-text">CHAT_SESSION.EXE</span>
+    <div className={`retro-terminal soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
+      {!isFocusMode && (
+        <div className="terminal-header">
+          <div className="terminal-title">
+            <span className="terminal-symbol">&gt;</span>
+            <span className="blinking-cursor">_</span>
+            <span className="title-text">CHAT_SESSION.EXE</span>
+          </div>
+          <div className="terminal-controls">
+            <div className="control-dot" />
+            <div className="control-dot" />
+            <div className="control-dot" />
+          </div>
         </div>
-        <div className="terminal-controls">
-          <div className="control-dot" />
-          <div className="control-dot" />
-          <div className="control-dot" />
-        </div>
-      </div>
+      )}
 
       <div className="chat-container">
-        <div className="chat-messages">
+        <div
+          className="chat-messages"
+          onDoubleClick={handleMessageAreaDoubleClick}
+          onTouchEnd={handleMessageAreaTouchEnd}
+        >
           {!hasMessages && (
             <div className="welcome-message">
               <div className="ascii-art">
                 ╔══════════════════════════════╗<br />
-                ║&nbsp;&nbsp;RETRO CHAT SYSTEM - v1.1.0&nbsp;&nbsp;║<br />
+                ║&nbsp;&nbsp;RETRO CHAT SYSTEM - {DISPLAY_VERSION}&nbsp;&nbsp;║<br />
                 ║&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;║<br />
                 ╚══════════════════════════════╝
               </div>
@@ -492,61 +525,63 @@ export function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-section">
-          <div className="runtime-toolbar">
-            <span className="runtime-label">SOUL</span>
-            <div className="soul-button-group">
-              {SOUL_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setSoulMode(option.value)}
-                  disabled={isSending}
-                  className={`soul-button ${option.className}${soulMode === option.value ? ' active' : ''}`}
-                >
-                  {option.label}
-                </button>
-              ))}
+        {!isFocusMode && (
+          <div className="input-section">
+            <div className="runtime-toolbar">
+              <span className="runtime-label">SOUL</span>
+              <div className="soul-button-group">
+                {SOUL_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSoulMode(option.value)}
+                    disabled={isSending}
+                    className={`soul-button ${option.className}${soulMode === option.value ? ' active' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <span className="runtime-chip route-chip">{statusHint}</span>
             </div>
-            <span className="runtime-chip route-chip">{statusHint}</span>
-          </div>
 
-          <div className="input-container">
-            <div className="input-prompt">
-              <span className="prompt-symbol">&gt;</span>
+            <div className="input-container">
+              <div className="input-prompt">
+                <span className="prompt-symbol">&gt;</span>
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                placeholder="输入您的消息..."
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
+                className="chat-input"
+                rows={1}
+                disabled={isSending}
+              />
             </div>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              placeholder="输入您的消息..."
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-              className="chat-input"
-              rows={1}
-              disabled={isSending}
-            />
+            <div className="button-group">
+              <button
+                type="button"
+                onClick={() => void handleSend()}
+                className="action-button send-button"
+                disabled={!input.trim() || isSending}
+              >
+                <Send size={16} />
+                <span>{hasMessages ? '继续对话' : '开始对话'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={resetChat}
+                className="action-button new-chat-button"
+                disabled={messages.length === 0 && !input}
+              >
+                <Plus size={16} />
+                <span>新对话</span>
+              </button>
+            </div>
           </div>
-          <div className="button-group">
-            <button
-              type="button"
-              onClick={() => void handleSend()}
-              className="action-button send-button"
-              disabled={!input.trim() || isSending}
-            >
-              <Send size={16} />
-              <span>{hasMessages ? '继续对话' : '开始对话'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={resetChat}
-              className="action-button new-chat-button"
-              disabled={messages.length === 0 && !input}
-            >
-              <Plus size={16} />
-              <span>新对话</span>
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="scanlines" aria-hidden="true" />
