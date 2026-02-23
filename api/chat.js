@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const {
   MODEL,
   QUICK_MODEL = 'gemini-3-flash-preview',
-  THINKING_MODEL = 'gemini-3-pro-preview',
+  THINKING_MODEL = 'gemini-3.1-pro-preview',
   SYSTEM_PROMPT = 'You are a concise assistant.',
   OPENAI_API_KEY,
   DEFAULT_SOUL_MODE = 'savage'
@@ -13,7 +13,7 @@ const {
 
 const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const FAST_MODEL = QUICK_MODEL || MODEL || 'gemini-3-flash-preview';
-const DEEP_MODEL = THINKING_MODEL || MODEL || 'gemini-3-pro-preview';
+const DEEP_MODEL = THINKING_MODEL || MODEL || 'gemini-3.1-pro-preview';
 const VALID_SOUL_MODES = new Set(['gentle', 'pro', 'sharp', 'savage']);
 const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'coding', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);

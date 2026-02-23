@@ -69,7 +69,7 @@ Install Command: npm install
 ```bash
 OPENAI_API_KEY=你的真实密钥
 QUICK_MODEL=gemini-3-flash-preview     # 可选
-THINKING_MODEL=gemini-3-pro-preview    # 可选
+THINKING_MODEL=gemini-3.1-pro-preview    # 可选
 DEFAULT_SOUL_MODE=savage               # 可选: gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
 ```
@@ -80,7 +80,7 @@ SYSTEM_PROMPT=You are a concise assistant.   # 可选
 | --- | --- | --- |
 | `OPENAI_API_KEY` | 必填，上游模型服务的密钥 | 无 |
 | `QUICK_MODEL` | 快速模型（普通问题） | `gemini-3-flash-preview` |
-| `THINKING_MODEL` | 思考模型（高风险/复杂问题） | `gemini-3-pro-preview` |
+| `THINKING_MODEL` | 思考模型（高风险/复杂问题） | `gemini-3.1-pro-preview` |
 | `MODEL` | 全局兜底模型（兼容旧配置） | 空 |
 | `DEFAULT_SOUL_MODE` | 默认灵魂模式 | `savage` |
 | `SYSTEM_PROMPT` | 系统提示词 | `You are a concise assistant.` |
