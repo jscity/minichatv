@@ -257,6 +257,19 @@ body {
   gap: 10px;
 }
 
+.terminal-controls-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.terminal-controls-button:focus-visible {
+  outline: 1px solid rgba(var(--soul-indicator-rgb), 0.55);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
 .control-dot {
   width: 12px;
   height: 12px;
@@ -267,6 +280,108 @@ body {
     rgba(var(--soul-indicator-rgb), 0.45) 90%
   );
   box-shadow: 0 0 9px rgba(var(--soul-indicator-rgb), 0.55);
+}
+
+.soul-roulette-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.soul-roulette-panel {
+  position: relative;
+  width: min(84vw, 360px);
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 255, 170, 0.32);
+  background: radial-gradient(circle at 50% 40%, rgba(0, 255, 170, 0.08), rgba(0, 0, 0, 0.78));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 28px rgba(0, 255, 170, 0.14);
+}
+
+.roulette-indicator {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 14px solid rgba(255, 255, 255, 0.9);
+  z-index: 3;
+}
+
+.soul-wheel {
+  position: relative;
+  width: min(74vw, 290px);
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.9s cubic-bezier(0.16, 0.88, 0.2, 1);
+}
+
+.soul-wheel.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.soul-wheel.spinning {
+  transition: transform 0.9s cubic-bezier(0.16, 0.88, 0.2, 1);
+}
+
+.soul-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.36);
+  pointer-events: none;
+}
+
+.soul-wheel-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 92px;
+  margin-left: -46px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.soul-wheel-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(0, 255, 170, 0.38);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(0, 255, 170, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.soul-wheel-center:active {
+  transform: translate(-50%, -50%) scale(0.96);
 }
 
 .chat-container {
@@ -480,47 +595,6 @@ body {
   backdrop-filter: blur(10px);
 }
 
-.runtime-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.runtime-label {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: rgba(0, 255, 170, 0.6);
-}
-
-.soul-button-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.soul-button {
-  padding: 7px 11px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.55);
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.soul-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.soul-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .soul-gentle {
   color: #8dffd8;
   border-color: rgba(141, 255, 216, 0.35);
@@ -541,29 +615,6 @@ body {
   border-color: rgba(255, 154, 154, 0.35);
 }
 
-.soul-button.active {
-  box-shadow: 0 0 12px rgba(0, 255, 170, 0.3);
-  background: rgba(0, 40, 24, 0.65);
-}
-
-.runtime-chip {
-  padding: 6px 10px;
-  border: 1px solid rgba(0, 255, 170, 0.35);
-  border-radius: 10px;
-  color: rgba(0, 255, 170, 0.9);
-  font-size: 12px;
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.route-chip {
-  color: rgba(255, 230, 109, 0.95);
-  border-color: rgba(255, 230, 109, 0.4);
-  font-family: 'IBM Plex Mono', 'Courier New', monospace;
-  margin-left: auto;
-  max-width: 100%;
-  overflow-x: auto;
-  white-space: nowrap;
-}
 
 .input-container {
   display: flex;
@@ -710,17 +761,16 @@ body {
     flex-direction: column;
   }
 
-  .runtime-toolbar {
-    gap: 8px;
-  }
-
-  .route-chip {
-    margin-left: 0;
-    width: 100%;
-  }
-
   .retro-terminal.focus-mode .chat-messages {
     padding: 10px 12px 16px;
+  }
+
+  .soul-roulette-panel {
+    width: calc(100vw - 28px);
+  }
+
+  .soul-wheel {
+    width: min(78vw, 292px);
   }
 
   .dial-key {

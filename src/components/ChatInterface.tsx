@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Send, MoreHorizontal, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Send, MoreHorizontal, Maximize2, Minimize2, Shuffle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -23,6 +23,12 @@ interface Message {
   isError?: boolean;
 }
 
+interface RouletteDragState {
+  pointerId: number;
+  startAngle: number;
+  startRotation: number;
+}
+
 const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
 const UNLOCK_COOKIE = 'terminal_unlock';
@@ -38,11 +44,11 @@ const DEFAULT_PROFILE: UserProfile = {
 
 const MOBILE_DIAL_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del'] as const;
 
-const SOUL_OPTIONS: Array<{ value: SoulMode; label: string; className: string }> = [
-  { value: 'gentle', label: 'Gentle', className: 'soul-gentle' },
-  { value: 'pro', label: 'Pro', className: 'soul-pro' },
-  { value: 'sharp', label: 'Sharp', className: 'soul-sharp' },
-  { value: 'savage', label: 'Savage', className: 'soul-savage' }
+const SOUL_OPTIONS: Array<{ value: SoulMode; label: string; className: string; color: string }> = [
+  { value: 'gentle', label: 'GENTLE', className: 'soul-gentle', color: '#8dffd8' },
+  { value: 'pro', label: 'PRO', className: 'soul-pro', color: '#93b9ff' },
+  { value: 'sharp', label: 'SHARP', className: 'soul-sharp', color: '#ffe58a' },
+  { value: 'savage', label: 'SAVAGE', className: 'soul-savage', color: '#ff9a9a' }
 ];
 
 const normalizeSoulMode = (value: string): SoulMode => {
@@ -179,16 +185,6 @@ const extractText = (event: unknown): string => {
   return '';
 };
 
-const getRouteHint = (response: Response) => {
-  const modelTier = response.headers.get('x-route-model');
-  const soul = response.headers.get('x-route-soul');
-
-  const chunks: string[] = [];
-  if (modelTier) chunks.push(`model:${modelTier}`);
-  if (soul) chunks.push(`soul:${soul}`);
-  return chunks.join(' | ');
-};
-
 const getClientTimeZone = () => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -210,15 +206,20 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isSoulRouletteOpen, setIsSoulRouletteOpen] = useState(false);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [isWheelDragging, setIsWheelDragging] = useState(false);
+  const [isWheelSpinning, setIsWheelSpinning] = useState(false);
   const [soulMode, setSoulMode] = useState<SoulMode>(() => {
     const saved = readCookie(SOUL_COOKIE);
     return saved ? normalizeSoulMode(saved) : DEFAULT_SOUL_MODE;
   });
   const [userProfile, setUserProfile] = useState<UserProfile>(() => parseProfileCookie());
-  const [routeHint, setRouteHint] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
+  const rouletteRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef<RouletteDragState | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -319,7 +320,6 @@ export function ChatInterface() {
     setMessages([]);
     setInput('');
     setIsSending(false);
-    setRouteHint('');
     queueMicrotask(() => textareaRef.current?.focus());
   };
 
@@ -372,8 +372,6 @@ export function ChatInterface() {
         const detail = await response.text().catch(() => '');
         throw new Error(detail || `请求失败 (${response.status})`);
       }
-
-      setRouteHint(getRouteHint(response));
 
       if (!response.body) {
         throw new Error('服务器没有返回内容');
@@ -514,8 +512,102 @@ export function ChatInterface() {
     void submitUnlock(unlockInput);
   };
 
+  const getPointerAngle = (event: React.PointerEvent<HTMLDivElement>) => {
+    const wheel = rouletteRef.current;
+    if (!wheel) return 0;
+    const rect = wheel.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(event.clientY - cy, event.clientX - cx) * (180 / Math.PI);
+  };
+
+  const toSoulIndexFromRotation = (rotation: number) => {
+    const step = Math.round(-rotation / 90);
+    return ((step % SOUL_OPTIONS.length) + SOUL_OPTIONS.length) % SOUL_OPTIONS.length;
+  };
+
+  const applySoulByRotation = useCallback((rotation: number) => {
+    const index = toSoulIndexFromRotation(rotation);
+    const selected = SOUL_OPTIONS[index];
+    if (selected) setSoulMode(selected.value);
+  }, []);
+
+  const snapRotation = useCallback((rotation: number) => {
+    const snapped = Math.round(rotation / 90) * 90;
+    setWheelRotation(snapped);
+    applySoulByRotation(snapped);
+  }, [applySoulByRotation]);
+
+  const openSoulRoulette = () => {
+    setIsSoulRouletteOpen((prev) => !prev);
+  };
+
+  const handleWheelPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isWheelSpinning) return;
+    event.preventDefault();
+    const angle = getPointerAngle(event);
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startAngle: angle,
+      startRotation: wheelRotation
+    };
+    setIsWheelDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleWheelPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const angle = getPointerAngle(event);
+    const delta = angle - drag.startAngle;
+    setWheelRotation(drag.startRotation + delta);
+  };
+
+  const finishWheelDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragStateRef.current = null;
+    setIsWheelDragging(false);
+    snapRotation(wheelRotation);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const spinWheelRandomly = () => {
+    if (isWheelSpinning) return;
+    const targetIndex = Math.floor(Math.random() * SOUL_OPTIONS.length);
+    const desiredNorm = ((-targetIndex * 90) % 360 + 360) % 360;
+    const currentNorm = ((wheelRotation % 360) + 360) % 360;
+    const baseSpin = 720 + Math.floor(Math.random() * 360);
+    const alignDelta = (desiredNorm - ((currentNorm + baseSpin) % 360) + 360) % 360;
+    const targetRotation = wheelRotation + baseSpin + alignDelta;
+
+    setIsWheelSpinning(true);
+    setWheelRotation(targetRotation);
+    window.setTimeout(() => {
+      setIsWheelSpinning(false);
+      snapRotation(targetRotation);
+    }, 900);
+  };
+
+  useEffect(() => {
+    if (!isSoulRouletteOpen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsSoulRouletteOpen(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [isSoulRouletteOpen]);
+
+  useEffect(() => {
+    const index = SOUL_OPTIONS.findIndex((item) => item.value === soulMode);
+    if (index >= 0) {
+      setWheelRotation(-index * 90);
+    }
+  }, [soulMode]);
+
   const hasMessages = messages.length > 0;
-  const statusHint = routeHint || `soul:${soulMode}`;
   const unlockDots = Array.from({ length: Math.max(4, Math.min(8, unlockInput.length || 4)) });
 
   if (!isUnlocked) {
@@ -593,11 +685,16 @@ export function ChatInterface() {
             <span className="blinking-cursor">_</span>
             <span className="title-text">CHAT_SESSION.EXE</span>
           </div>
-          <div className="terminal-controls">
+          <button
+            type="button"
+            className="terminal-controls terminal-controls-button"
+            onClick={openSoulRoulette}
+            aria-label="Open soul roulette"
+          >
             <div className="control-dot" />
             <div className="control-dot" />
             <div className="control-dot" />
-          </div>
+          </button>
         </div>
       )}
 
@@ -660,24 +757,6 @@ export function ChatInterface() {
 
         {!isFocusMode && (
           <div className="input-section">
-            <div className="runtime-toolbar">
-              <span className="runtime-label">SOUL</span>
-              <div className="soul-button-group">
-                {SOUL_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setSoulMode(option.value)}
-                    disabled={isSending}
-                    className={`soul-button ${option.className}${soulMode === option.value ? ' active' : ''}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-              <span className="runtime-chip route-chip">{statusHint}</span>
-            </div>
-
             <div className="input-container">
               <div className="input-prompt">
                 <span className="prompt-symbol">&gt;</span>
@@ -716,6 +795,51 @@ export function ChatInterface() {
           </div>
         )}
       </div>
+
+      {isSoulRouletteOpen && (
+        <div className="soul-roulette-overlay" onClick={() => setIsSoulRouletteOpen(false)}>
+          <div className="soul-roulette-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="roulette-indicator" />
+            <div
+              ref={rouletteRef}
+              className={`soul-wheel${isWheelDragging ? ' dragging' : ''}${isWheelSpinning ? ' spinning' : ''}`}
+              style={{
+                transform: `rotate(${wheelRotation}deg)`,
+                background: `conic-gradient(
+                  ${SOUL_OPTIONS[0].color} 0deg 90deg,
+                  ${SOUL_OPTIONS[1].color} 90deg 180deg,
+                  ${SOUL_OPTIONS[2].color} 180deg 270deg,
+                  ${SOUL_OPTIONS[3].color} 270deg 360deg
+                )`
+              }}
+              onPointerDown={handleWheelPointerDown}
+              onPointerMove={handleWheelPointerMove}
+              onPointerUp={finishWheelDrag}
+              onPointerCancel={finishWheelDrag}
+            >
+              {SOUL_OPTIONS.map((option, index) => (
+                <div
+                  key={option.value}
+                  className={`soul-wheel-label ${option.className}`}
+                  style={{
+                    transform: `rotate(${index * 90}deg) translateY(-88px) rotate(${-index * 90}deg)`
+                  }}
+                >
+                  {option.label}
+                </div>
+              ))}
+              <button
+                type="button"
+                className="soul-wheel-center"
+                onClick={spinWheelRandomly}
+                aria-label="Randomize soul"
+              >
+                <Shuffle size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="scanlines" aria-hidden="true" />
     </div>
