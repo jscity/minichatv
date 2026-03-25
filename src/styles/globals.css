@@ -282,7 +282,7 @@ body {
   box-shadow: 0 0 9px rgba(var(--soul-indicator-rgb), 0.55);
 }
 
-.soul-roulette-overlay {
+.soul-menu-overlay {
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -293,95 +293,97 @@ body {
   backdrop-filter: blur(4px);
 }
 
-.soul-roulette-panel {
+.soul-menu-panel {
   position: relative;
-  width: min(84vw, 360px);
-  aspect-ratio: 1 / 1;
+  width: min(92vw, 420px);
   border-radius: 18px;
   border: 1px solid rgba(0, 255, 170, 0.32);
-  background: radial-gradient(circle at 50% 40%, rgba(0, 255, 170, 0.08), rgba(0, 0, 0, 0.78));
+  background:
+    linear-gradient(180deg, rgba(10, 18, 14, 0.96), rgba(0, 0, 0, 0.94)),
+    radial-gradient(circle at top left, rgba(0, 255, 170, 0.1), transparent 55%);
+  box-shadow: 0 0 30px rgba(0, 255, 170, 0.14);
+  overflow: hidden;
+}
+
+.soul-menu-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 28px rgba(0, 255, 170, 0.14);
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0, 255, 170, 0.18);
 }
 
-.roulette-indicator {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: 0;
-  height: 0;
-  transform: translateX(-50%);
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 14px solid rgba(255, 255, 255, 0.9);
-  z-index: 3;
+.soul-menu-title {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: rgba(0, 255, 170, 0.84);
 }
 
-.soul-wheel {
-  position: relative;
-  width: min(74vw, 290px);
-  aspect-ratio: 1 / 1;
+.soul-menu-close {
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
-  transition: transform 0.9s cubic-bezier(0.16, 0.88, 0.2, 1);
-}
-
-.soul-wheel.dragging {
-  cursor: grabbing;
-  transition: none;
-}
-
-.soul-wheel.spinning {
-  transition: transform 0.9s cubic-bezier(0.16, 0.88, 0.2, 1);
-}
-
-.soul-wheel::before {
-  content: '';
-  position: absolute;
-  inset: 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.36);
-  pointer-events: none;
-}
-
-.soul-wheel-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 92px;
-  margin-left: -46px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-}
-
-.soul-wheel-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60px;
-  height: 60px;
-  transform: translate(-50%, -50%);
-  border: 1px solid rgba(0, 255, 170, 0.38);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.72);
-  color: rgba(0, 255, 170, 0.92);
+  border: 1px solid rgba(0, 255, 170, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(0, 255, 170, 0.82);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 3;
 }
 
-.soul-wheel-center:active {
-  transform: translate(-50%, -50%) scale(0.96);
+.soul-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.soul-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.soul-menu-item:hover {
+  transform: translateY(-1px);
+}
+
+.soul-menu-item.active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.soul-menu-item-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.soul-menu-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.soul-menu-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.soul-menu-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .chat-container {
@@ -765,12 +767,8 @@ body {
     padding: 10px 12px 16px;
   }
 
-  .soul-roulette-panel {
+  .soul-menu-panel {
     width: calc(100vw - 28px);
-  }
-
-  .soul-wheel {
-    width: min(78vw, 292px);
   }
 
   .dial-key {
