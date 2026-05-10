@@ -3,8 +3,8 @@ import { Plus, Send, MoreHorizontal, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-type SoulMode = 'gentle' | 'pro' | 'sharp' | 'savage';
-type TopicPreference = 'general' | 'emotion' | 'game' | 'coding' | 'medical' | 'elder' | 'kids';
+type SoulMode = 'machine' | 'gentle' | 'pro' | 'sharp' | 'savage';
+type TopicPreference = 'general' | 'emotion' | 'game' | 'medical' | 'elder' | 'kids';
 type TonePreference = 'balanced' | 'warm' | 'direct' | 'professional';
 type AudienceMode = 'general' | 'elder' | 'kids';
 
@@ -26,8 +26,8 @@ interface Message {
 const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
 const UNLOCK_COOKIE = 'terminal_unlock';
-const DEFAULT_SOUL_MODE: SoulMode = 'savage';
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.0.0';
+const DEFAULT_SOUL_MODE: SoulMode = 'machine';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.0.1';
 const DISPLAY_VERSION = `v${APP_VERSION}`;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
 const DEFAULT_PROFILE: UserProfile = {
@@ -54,13 +54,16 @@ const SOUL_OPTIONS: Array<{
 const normalizeSoulMode = (value: string): SoulMode => {
   const normalized = value.toLowerCase();
   const alias: Record<string, SoulMode> = {
+    default: 'machine',
+    cold: 'machine',
+    machine: 'machine',
     warm: 'gentle',
     professional: 'pro',
     toxic: 'savage',
     edgy: 'savage'
   };
   const mapped = alias[normalized] || normalized;
-  if (mapped === 'gentle' || mapped === 'pro' || mapped === 'sharp' || mapped === 'savage') return mapped;
+  if (mapped === 'machine' || mapped === 'gentle' || mapped === 'pro' || mapped === 'sharp' || mapped === 'savage') return mapped;
   return DEFAULT_SOUL_MODE;
 };
 
@@ -93,15 +96,42 @@ const writeCookie = (name: string, value: string, days = 180) => {
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
 };
 
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+};
+
+const normalizeTopicPreference = (value: unknown): TopicPreference => {
+  if (
+    value === 'emotion' ||
+    value === 'game' ||
+    value === 'medical' ||
+    value === 'elder' ||
+    value === 'kids'
+  ) {
+    return value;
+  }
+  return 'general';
+};
+
+const normalizeTonePreference = (value: unknown): TonePreference => {
+  if (value === 'warm' || value === 'direct' || value === 'professional') return value;
+  return 'balanced';
+};
+
+const normalizeAudienceMode = (value: unknown): AudienceMode => {
+  if (value === 'elder' || value === 'kids') return value;
+  return 'general';
+};
+
 const parseProfileCookie = (): UserProfile => {
   try {
     const raw = readCookie(PROFILE_COOKIE);
     if (!raw) return DEFAULT_PROFILE;
     const parsed = JSON.parse(raw) as Partial<UserProfile>;
     return {
-      topicPreference: parsed.topicPreference || 'general',
-      tonePreference: parsed.tonePreference || 'balanced',
-      audienceMode: parsed.audienceMode || 'general'
+      topicPreference: normalizeTopicPreference(parsed.topicPreference),
+      tonePreference: normalizeTonePreference(parsed.tonePreference),
+      audienceMode: normalizeAudienceMode(parsed.audienceMode)
     };
   } catch {
     return DEFAULT_PROFILE;
@@ -110,14 +140,16 @@ const parseProfileCookie = (): UserProfile => {
 
 const inferProfileFromText = (text: string, prev: UserProfile): UserProfile => {
   const normalized = text.toLowerCase();
-  const next: UserProfile = { ...prev };
+  const next: UserProfile = {
+    topicPreference: normalizeTopicPreference(prev.topicPreference),
+    tonePreference: normalizeTonePreference(prev.tonePreference),
+    audienceMode: normalizeAudienceMode(prev.audienceMode)
+  };
 
   if (/(情感|恋爱|关系|焦虑|倾诉|安慰|emotion|relationship|feeling)/i.test(normalized)) {
     next.topicPreference = 'emotion';
   } else if (/(游戏|攻略|通关|boss|steam|王者|lol|game|gaming)/i.test(normalized)) {
     next.topicPreference = 'game';
-  } else if (/(代码|编程|开发|调试|bug|api|python|javascript|react|程序)/i.test(normalized)) {
-    next.topicPreference = 'coding';
   } else if (/(医疗|医生|病|症状|用药|诊断|medical|health|treatment)/i.test(normalized)) {
     next.topicPreference = 'medical';
   } else if (/(老人|老年|长辈|退休|elder|senior)/i.test(normalized)) {
@@ -236,6 +268,10 @@ export function ChatInterface() {
   }, [messages]);
 
   useEffect(() => {
+    if (soulMode === DEFAULT_SOUL_MODE) {
+      deleteCookie(SOUL_COOKIE);
+      return;
+    }
     writeCookie(SOUL_COOKIE, soulMode, 365);
   }, [soulMode]);
 
@@ -590,7 +626,18 @@ export function ChatInterface() {
       {!isFocusMode && (
         <div className="terminal-header">
           <div className="terminal-title">
-            <span className="terminal-symbol">&gt;</span>
+            <button
+              type="button"
+              className="terminal-symbol soul-reset-trigger"
+              onClick={() => {
+                setSoulMode(DEFAULT_SOUL_MODE);
+                setIsSoulMenuOpen(false);
+              }}
+              aria-label="Reset to default soul"
+              title="Reset to default soul"
+            >
+              &gt;
+            </button>
             <span className="blinking-cursor">_</span>
             <span className="title-text">CHAT_SESSION.EXE</span>
           </div>

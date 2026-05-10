@@ -8,19 +8,20 @@ const {
   THINKING_MODEL = 'gemini-3.1-pro-preview',
   SYSTEM_PROMPT = 'You are a concise assistant.',
   OPENAI_API_KEY,
-  DEFAULT_SOUL_MODE = 'savage'
+  DEFAULT_SOUL_MODE = 'machine'
 } = process.env;
 
 const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const FAST_MODEL = QUICK_MODEL || MODEL || 'gemini-3-flash-preview';
 const DEEP_MODEL = THINKING_MODEL || MODEL || 'gemini-3.1-pro-preview';
-const VALID_SOUL_MODES = new Set(['gentle', 'pro', 'sharp', 'savage']);
-const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'coding', 'medical', 'elder', 'kids']);
+const VALID_SOUL_MODES = new Set(['machine', 'gentle', 'pro', 'sharp', 'savage']);
+const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
 const VALID_AUDIENCE = new Set(['general', 'elder', 'kids']);
 const SOUL_CACHE = new Map();
 const SOUL_LOAD_WARNED = new Set();
 const SOUL_FILE_BY_MODE = {
+  machine: 'SOUL_MACHINE.md',
   gentle: 'SOUL_GENTLE.md',
   pro: 'SOUL_PRO.md',
   sharp: 'SOUL.md',
@@ -29,6 +30,19 @@ const SOUL_FILE_BY_MODE = {
 const API_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(API_DIR, '..');
 const SOUL_FALLBACK_BY_MODE = {
+  machine: [
+    '# Soul',
+    '',
+    '## Core',
+    '- Machine profile: cold, rational, and extremely brief.',
+    '- Answer with the fewest words that solve the request.',
+    '- No warmth, no banter, no over-explanation.',
+    '- Context First. State uncertainty briefly when facts are missing or stale.',
+    '- Never insult, flatter, or moralize.',
+    '',
+    '## Vibe',
+    'An unsentimental reasoning machine.'
+  ].join('\n'),
   gentle: [
     '# Soul',
     '',
@@ -87,6 +101,7 @@ const HIGH_STAKES_RE =
   /(医疗|医生|病情|诊断|用药|处方|手术|法律|合同|起诉|刑事|合规|税务|理财|投资|股票建议|financial advice|medical advice|legal advice|diagnosis|prescription|lawsuit|compliance)/i;
 const COMPLEX_RE =
   /(架构|设计方案|分步骤|trade[- ]?off|debug|排查|算法|深度分析|implementation|refactor|多方案对比|根因分析|推理)/i;
+const CODING_RE = /(代码|编程|开发|调试|bug|api|python|javascript|typescript|react|程序|code|coding|programming)/i;
 const TIME_RE = /(现在几点|当前时间|现在时间|what time|current time|time now|today date|今天几号)/i;
 const GOLD_RE = /(黄金|金价|xau|gold price|gold quote|gold)/i;
 const SEARCH_RE = /(搜索|查一下|联网|最新|新闻|快讯|headline|breaking|latest news|online search|实时信息)/i;
@@ -116,11 +131,11 @@ function parseCookies(headerValue) {
 }
 
 function readSoulText(mode) {
-  const key = VALID_SOUL_MODES.has(mode) ? mode : 'savage';
+  const key = VALID_SOUL_MODES.has(mode) ? mode : 'machine';
   const cached = SOUL_CACHE.get(key);
   if (cached) return { text: cached, source: 'cache' };
 
-  const fileName = SOUL_FILE_BY_MODE[key] || 'SOUL_SHARP.md';
+  const fileName = SOUL_FILE_BY_MODE[key] || 'SOUL_MACHINE.md';
   const soulPath = path.join(PROJECT_ROOT, fileName);
   try {
     const text = fs.readFileSync(soulPath, 'utf8').trim();
@@ -147,7 +162,9 @@ function normalizeSoulAlias(mode) {
     professional: 'pro',
     toxic: 'savage',
     edgy: 'savage',
-    default: 'savage'
+    default: 'machine',
+    cold: 'machine',
+    machine: 'machine'
   };
   return alias[normalized] || normalized;
 }
@@ -172,7 +189,7 @@ function resolveSoulMode(requestedMode, highStakes) {
     ? normalized
     : VALID_SOUL_MODES.has(defaultMode)
       ? defaultMode
-      : 'savage';
+      : 'machine';
   if (highStakes && (resolved === 'savage' || resolved === 'sharp')) return 'pro';
   return resolved;
 }
@@ -190,7 +207,8 @@ function detectSignals(text) {
   const source = (text || '').trim();
   return {
     highStakes: HIGH_STAKES_RE.test(source),
-    complex: source.length > 260 || COMPLEX_RE.test(source),
+    complex: source.length > 260 || COMPLEX_RE.test(source) || CODING_RE.test(source),
+    coding: CODING_RE.test(source),
     needTime: TIME_RE.test(source),
     needGoldPrice: GOLD_RE.test(source),
     needSearch: SEARCH_RE.test(source),
@@ -458,6 +476,7 @@ export default async function handler(req, res) {
       [
         signals.highStakes ? 'high_stakes' : '',
         signals.complex ? 'complex' : '',
+        signals.coding ? 'coding' : '',
         signals.needRealtime ? 'realtime' : '',
         signals.needGoldPrice ? 'gold' : '',
         signals.needSearch ? 'search' : ''

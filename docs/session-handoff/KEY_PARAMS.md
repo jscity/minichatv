@@ -11,7 +11,7 @@
 | 默认分支 | `main` |
 | Vercel 项目页 | `https://vercel.com/xts-projects-b1da549d/jscity-minichatv/` |
 | Vercel Project ID | `prj_KEnpLtnR9nc6NBMCSbFhOa2Q3Nph` |
-| 当前 app 版本 | `2.0.0` |
+| 当前 app 版本 | `2.0.1` |
 | 前端框架 | `Vite + React` |
 | 后端形态 | `Vercel Serverless Functions` |
 
@@ -48,7 +48,7 @@ git push origin main
 | `THINKING_MODEL` | 否 | `gemini-3.1-pro-preview` | 思考模型。Vercel 中若设置旧值会覆盖代码默认值。 |
 | `MODEL` | 否 | 无 | 兼容兜底模型变量。 |
 | `SYSTEM_PROMPT` | 否 | `You are a concise assistant.` | SOUL 文件加载失败时的兜底提示词之一。 |
-| `DEFAULT_SOUL_MODE` | 否 | `savage` | 默认灵魂模式。 |
+| `DEFAULT_SOUL_MODE` | 否 | `machine` | 默认灵魂模式。 |
 
 ## API 路由
 
@@ -71,17 +71,18 @@ git push origin main
 
 | UI 名称 | 后端值 | 文件 | 用途 |
 | --- | --- | --- | --- |
+| 默认（不在菜单中） | `machine` | `SOUL_MACHINE.md` | 绿色默认；冷酷、极简、超理性。 |
 | `GENTLE` | `gentle` | `SOUL_GENTLE.md` | 温和、情绪照顾、耐心解释。 |
 | `PRO` | `pro` | `SOUL_PRO.md` | 专业、直接、少情绪表达。 |
 | `SHARP` | `sharp` | `SOUL.md` | 有个性、犀利、但不攻击用户。 |
-| `SAVAGE` | `savage` | `SOUL_SHARP.md` | 默认；毒舌、偶尔脏话、有力度。 |
+| `SAVAGE` | `savage` | `SOUL_SHARP.md` | 毒舌、偶尔脏话、有力度。 |
 
 ## Cookie
 
 | Cookie | 值 | 作用 |
 | --- | --- | --- |
 | `terminal_unlock` | `1` | 已通过密码登录，下次打开免输入。 |
-| `soul_mode` | `gentle` / `pro` / `sharp` / `savage` | 保存上一次 SOUL 选择。 |
+| `soul_mode` | `gentle` / `pro` / `sharp` / `savage` | 保存上一次菜单 SOUL 选择；默认 `machine` 不写入 cookie。 |
 | `mini_pref` | JSON | 保存轻量用户偏好，如主题、语气、受众。 |
 
 ## 本地文件
@@ -94,7 +95,7 @@ git push origin main
 | `src/styles/globals.css` | 复古终端视觉、移动端布局、全屏阅读模式。 |
 | `vercel.json` | Vercel 构建、函数 includeFiles、rewrite。 |
 | `PASSCODE.md` | 初始访问密码，当前为 `8086`。 |
-| `SOUL*.md` | 四种灵魂提示词。 |
+| `SOUL*.md` | 默认机器灵魂和四种菜单灵魂提示词。 |
 
 ## 快速排查清单
 
@@ -107,4 +108,3 @@ git push origin main
 | SOUL 不生效 | 检查 `api/chat.js` 是否读取 `soulMode`，`vercel.json` 是否 include `SOUL*.md`。 |
 | 登录密码不生效 | 检查 `PASSCODE.md` 是否被 include，前端 cookie 是否缓存旧登录状态。 |
 | GitHub / Vercel check 失败作者邮箱 | 检查 `git config user.email` 是否匹配 GitHub 账号邮箱。 |
-

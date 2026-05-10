@@ -28,11 +28,12 @@ MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前�
 
 - 修复 Vercel 404：添加 SPA rewrite，前端路由回落到 `index.html`。
 - 修复 Vercel schema：`functions.api/chat.js.includeFiles` 使用字符串。
-- 增加四个 SOUL：
+- 增加默认 `MACHINE` SOUL 和四个菜单 SOUL：
+  - `MACHINE`：默认绿色，不在菜单中；冷酷、极简、超理性。
   - `GENTLE`：温和、情绪照顾。
   - `PRO`：专业、无废话。
   - `SHARP`：犀利、有个性。
-  - `SAVAGE`：毒舌、偶尔脏话、默认值。
+  - `SAVAGE`：毒舌、偶尔脏话。
 - 右上角三个点打开 SOUL 选择器，已从轮盘改为复古终端弹窗。
 - SOUL 选择保存到 cookie，重新打开页面后保留。
 - 移动端内容区有透明全屏按钮，不再使用双击触发，避免 iOS 双击缩放冲突。
@@ -73,4 +74,3 @@ MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前�
   - 检查最近部署状态。
   - 检查函数日志。
   - 校验生产域名与 GitHub 分支绑定。
-
