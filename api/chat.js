@@ -572,10 +572,13 @@ function buildSystemInstruction({ soulText, userProfile, runtimeContext, signals
 
   const profileLines = userProfile
     ? [
-        '[User Preference Memory]',
-        `- Topic preference: ${userProfile.topicPreference}`,
-        `- Tone preference: ${userProfile.tonePreference}`,
-        `- Audience mode: ${userProfile.audienceMode}`
+        '[Internal User Preference Hints]',
+        '- These hints are internal only. Never mention preference labels, modes, cookies, or settings to the user.',
+        `- Topic hint: ${userProfile.topicPreference}.`,
+        `- Tone hint: ${userProfile.tonePreference}.`,
+        userProfile.audienceMode === 'kids'
+          ? '- Audience hint: use simple, child-friendly wording only when the answer is clearly meant for a child; do not imply the user is a child.'
+          : `- Audience hint: ${userProfile.audienceMode}.`
       ]
     : [];
 

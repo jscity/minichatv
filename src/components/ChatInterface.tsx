@@ -138,6 +138,9 @@ const parseProfileCookie = (): UserProfile => {
   }
 };
 
+const isChildAudienceRequest = (text: string) =>
+  /(给|帮|向|对).{0,8}(孩子|小朋友|儿童|宝宝).{0,8}(讲|说|解释|介绍|科普)|用.{0,8}(孩子|小朋友|儿童).{0,8}(能懂|听得懂|看得懂)|儿童模式|kid[- ]?friendly|for kids|explain to (a )?(kid|child)/i.test(text);
+
 const inferProfileFromText = (text: string, prev: UserProfile): UserProfile => {
   const normalized = text.toLowerCase();
   const next: UserProfile = {
@@ -154,7 +157,7 @@ const inferProfileFromText = (text: string, prev: UserProfile): UserProfile => {
     next.topicPreference = 'medical';
   } else if (/(老人|老年|长辈|退休|elder|senior)/i.test(normalized)) {
     next.topicPreference = 'elder';
-  } else if (/(孩子|小朋友|儿童|宝宝|kid|child)/i.test(normalized)) {
+  } else if (isChildAudienceRequest(normalized)) {
     next.topicPreference = 'kids';
   }
 
@@ -168,7 +171,7 @@ const inferProfileFromText = (text: string, prev: UserProfile): UserProfile => {
 
   if (/(老人|老年|长辈|爸妈|elder|senior)/i.test(normalized)) {
     next.audienceMode = 'elder';
-  } else if (/(孩子|小朋友|儿童|kid|child)/i.test(normalized)) {
+  } else if (isChildAudienceRequest(normalized)) {
     next.audienceMode = 'kids';
   } else if (/(普通用户|通用|general)/i.test(normalized)) {
     next.audienceMode = 'general';
