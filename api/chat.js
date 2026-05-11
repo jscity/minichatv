@@ -326,8 +326,8 @@ async function fetchGoldSnapshot() {
 
 function detectSearchLanguage(text) {
   return /[\u4e00-\u9fff]/.test(text || '')
-    ? { country: 'CN', searchLang: 'zh', uiLang: 'zh-CN' }
-    : { country: 'US', searchLang: 'en', uiLang: 'en-US' };
+    ? { country: 'cn', searchLang: 'zh-hans', uiLang: 'zh-CN' }
+    : { country: 'us', searchLang: 'en', uiLang: 'en-US' };
 }
 
 function resolveSearchPlan(text, intent) {
@@ -346,8 +346,9 @@ function resolveSearchPlan(text, intent) {
   };
 
   if (intent === 'news' || intent === 'gossip') {
+    const urgentNews = /(今天|刚刚|现在|此刻|突发|快讯|today|now|breaking)/i.test(source);
     plan.endpoint = 'news';
-    plan.freshness = 'pd';
+    plan.freshness = urgentNews ? 'pd' : 'pw';
   } else if (intent === 'game_realtime') {
     plan.endpoint = 'web';
     plan.freshness = urgentGame ? 'pd' : 'pw';
@@ -450,21 +451,6 @@ async function requestBraveSearch(plan, freshnessOverride) {
 async function fetchSearchSnapshot(query, intent) {
   const plan = resolveSearchPlan(query, intent);
   const first = await requestBraveSearch(plan);
-  if (first.results.length > 0) return { ...first, plan };
-
-  if ((intent === 'news' || intent === 'gossip') && plan.freshness === 'pd') {
-    const fallback = await requestBraveSearch(plan, 'pw');
-    if (fallback.results.length > 0) return { ...fallback, plan: { ...plan, freshness: 'pw' } };
-
-    const webFallbackPlan = { ...plan, endpoint: 'web', freshness: 'pw' };
-    const webFallback = await requestBraveSearch(webFallbackPlan);
-    return {
-      ...webFallback,
-      reason: webFallback.reason || fallback.reason || first.reason,
-      plan: webFallbackPlan
-    };
-  }
-
   return { ...first, plan };
 }
 
@@ -560,6 +546,8 @@ function buildSystemInstruction({ soulText, userProfile, runtimeContext, signals
     '- For gossip or leak-like topics, distinguish confirmed facts from claims, rumors, or media reports.',
     '- For game guides, mention the applicable version or source date when available; if unclear, say the guidance may be outdated.',
     '- If live search is unavailable or weak, say so plainly instead of inventing current facts.',
+    '- Do not use pet names, belittling nicknames, or diminutive labels for the user.',
+    '- Do not claim the user enabled a mode or setting unless the user explicitly asks about a visible UI control.',
     '- Keep answers concise and practical.',
     '- Do not insult, mock, or attack the user.'
   ];
