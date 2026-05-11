@@ -258,9 +258,9 @@ export function ChatInterface() {
     return saved ? normalizeSoulMode(saved) : DEFAULT_SOUL_MODE;
   });
   const [userProfile, setUserProfile] = useState<UserProfile>(() => parseProfileCookie());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -349,14 +349,10 @@ export function ChatInterface() {
     setUnlockError('');
   };
 
-  const scrollToBottom = useCallback((smooth = true) => {
+  const scrollToMessageStart = useCallback((messageId: string, smooth = true) => {
     const behavior = smooth ? 'smooth' : 'auto';
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    messageRefs.current[messageId]?.scrollIntoView({ behavior, block: 'start' });
   }, []);
-
-  useEffect(() => {
-    scrollToBottom(messages.length > 1);
-  }, [messages, scrollToBottom]);
 
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -402,6 +398,7 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput('');
     setIsSending(true);
+    requestAnimationFrame(() => scrollToMessageStart(assistantMessage.id));
 
     const history = [...messagesRef.current, userMessage]
       .filter((msg) => !msg.isError)
@@ -454,7 +451,6 @@ export function ChatInterface() {
           if (delta) {
             accumulated += delta;
             updateAssistant({ content: accumulated, isStreaming: true });
-            scrollToBottom();
           }
         } catch (err) {
           hasError = true;
@@ -527,7 +523,6 @@ export function ChatInterface() {
       );
     } finally {
       setIsSending(false);
-      scrollToBottom();
       queueMicrotask(() => textareaRef.current?.focus());
     }
   };
@@ -718,6 +713,9 @@ export function ChatInterface() {
             return (
               <div
                 key={message.id}
+                ref={(element) => {
+                  messageRefs.current[message.id] = element;
+                }}
                 className={`message ${isUser ? 'user-message' : 'ai-message'}${message.isError ? ' error-message' : ''}`}
               >
                 <div className="message-header">
@@ -743,7 +741,6 @@ export function ChatInterface() {
               </div>
             );
           })}
-          <div ref={messagesEndRef} />
         </div>
 
         {!isFocusMode && (

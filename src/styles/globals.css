@@ -605,6 +605,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  scroll-margin-top: 48px;
 }
 
 .message-header {
