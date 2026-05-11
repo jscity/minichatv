@@ -11,7 +11,7 @@
 | 默认分支 | `main` |
 | Vercel 项目页 | `https://vercel.com/xts-projects-b1da549d/jscity-minichatv/` |
 | Vercel Project ID | `prj_KEnpLtnR9nc6NBMCSbFhOa2Q3Nph` |
-| 当前 app 版本 | `2.0.1` |
+| 当前 app 版本 | `2.1.0` |
 | 前端框架 | `Vite + React` |
 | 后端形态 | `Vercel Serverless Functions` |
 

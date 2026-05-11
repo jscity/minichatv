@@ -8,6 +8,7 @@ const {
   THINKING_MODEL = 'gemini-3.1-pro-preview',
   SYSTEM_PROMPT = 'You are a concise assistant.',
   OPENAI_API_KEY,
+  BRAVE_SEARCH_API_KEY,
   DEFAULT_SOUL_MODE = 'machine'
 } = process.env;
 
@@ -104,7 +105,19 @@ const COMPLEX_RE =
 const CODING_RE = /(代码|编程|开发|调试|bug|api|python|javascript|typescript|react|程序|code|coding|programming)/i;
 const TIME_RE = /(现在几点|当前时间|现在时间|what time|current time|time now|today date|今天几号)/i;
 const GOLD_RE = /(黄金|金价|xau|gold price|gold quote|gold)/i;
-const SEARCH_RE = /(搜索|查一下|联网|最新|新闻|快讯|headline|breaking|latest news|online search|实时信息)/i;
+const EXPLICIT_SEARCH_RE = /(搜索|查一下|联网|网上查|实时信息|latest|breaking|online search)/i;
+const NEWS_RE = /(新闻|快讯|headline|latest news|breaking news|时事|突发|报道|发布会)/i;
+const GOSSIP_RE = /(爆料|八卦|吃瓜|热搜|塌房|回应|声明|绯闻|大瓜|瓜|怎么回事)/i;
+const GAME_DOMAIN_RE =
+  /(游戏|手游|端游|主机|steam|ps5|xbox|switch|原神|崩铁|星穹铁道|崩坏|绝区零|王者荣耀|王者|英雄联盟|lol|云顶|金铲铲|和平精英|pubg|cs2|无畏契约|瓦罗兰特|valorant|明日方舟|阴阳师|第五人格|逆水寒|魔兽|wow|暗黑|diablo|塞尔达|王国之泪|旷野之息|黑神话|悟空|艾尔登法环|elden ring|赛博朋克|cyberpunk|我的世界|minecraft|宝可梦|pokemon|炉石|hearthstone|dota|apex|fortnite|cod|使命召唤)/i;
+const GAME_REALTIME_RE =
+  /(游戏更新|版本更新|补丁|活动|卡池|赛季|服务器|停服|维护|上线时间|兑换码|meta|tier list|强度榜|更新公告|前瞻|复刻|限定|排位|赛程)/i;
+const GAME_GUIDE_RE =
+  /(攻略|技巧|玩法|教程|通关|配队|阵容|配装|build|出装|加点|天赋|铭文|符文|连招|打法|机制|路线|隐藏任务|隐藏结局|成就|速刷|刷材料|角色培养|培养|怎么打|怎么过|怎么配|怎么玩)/i;
+const FRESHNESS_RE = /(最新|今天|刚刚|现在|最近|目前|当前|本周|这周|本月|202[6-9]|latest|current|recent|today|now)/i;
+const FRESH_TOPIC_RE =
+  /(新闻|快讯|发布|宣布|上线|下架|价格|票房|排行|排名|赛程|政策|版本|更新|活动|趋势|进展|结果|名单|财报|发布会|事件)/i;
+const SEARCH_FALSE_POSITIVE_RE = /(最新的?(结构|格式|版本)?整理|新闻风格|写一篇新闻|模拟新闻|新闻稿|改写成新闻)/i;
 
 function parseJsonMaybe(input) {
   if (!input) return {};
@@ -203,16 +216,40 @@ function getLatestUserText(payload, history) {
   return '';
 }
 
+function classifySearchIntent(text) {
+  const source = (text || '').trim();
+  if (!source || SEARCH_FALSE_POSITIVE_RE.test(source)) return 'none';
+
+  const hasExplicitSearch = EXPLICIT_SEARCH_RE.test(source);
+  const hasFreshness = FRESHNESS_RE.test(source);
+  const hasGameDomain = GAME_DOMAIN_RE.test(source);
+  const hasGameGuide = GAME_GUIDE_RE.test(source);
+  const hasGameRealtime = GAME_REALTIME_RE.test(source);
+  const hasGossip = GOSSIP_RE.test(source);
+  const hasNews = NEWS_RE.test(source);
+
+  if (hasGameDomain && hasGameGuide) return 'game_guide';
+  if (hasGameDomain && hasGameRealtime) return 'game_realtime';
+  if (hasGossip && (hasFreshness || hasExplicitSearch || hasNews)) return 'gossip';
+  if (hasNews && (hasFreshness || hasExplicitSearch)) return 'news';
+  if (hasExplicitSearch) return 'explicit_search';
+  if (hasFreshness && (FRESH_TOPIC_RE.test(source) || hasGameDomain || hasGossip || hasNews)) return 'general_fresh';
+
+  return 'none';
+}
+
 function detectSignals(text) {
   const source = (text || '').trim();
+  const searchIntent = classifySearchIntent(source);
   return {
     highStakes: HIGH_STAKES_RE.test(source),
     complex: source.length > 260 || COMPLEX_RE.test(source) || CODING_RE.test(source),
     coding: CODING_RE.test(source),
     needTime: TIME_RE.test(source),
     needGoldPrice: GOLD_RE.test(source),
-    needSearch: SEARCH_RE.test(source),
-    needRealtime: TIME_RE.test(source) || GOLD_RE.test(source) || SEARCH_RE.test(source)
+    searchIntent,
+    needSearch: searchIntent !== 'none',
+    needRealtime: TIME_RE.test(source) || GOLD_RE.test(source) || searchIntent !== 'none'
   };
 }
 
@@ -287,45 +324,139 @@ async function fetchGoldSnapshot() {
   }
 }
 
-function decodeEntities(text) {
-  if (!text || typeof text !== 'string') return '';
-  return text
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'");
+function detectSearchLanguage(text) {
+  return /[\u4e00-\u9fff]/.test(text || '')
+    ? { country: 'CN', searchLang: 'zh', uiLang: 'zh-CN' }
+    : { country: 'US', searchLang: 'en', uiLang: 'en-US' };
 }
 
-function pickFirstTag(itemXml, tagName) {
-  const re = new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`, 'i');
-  const matched = itemXml.match(re);
-  return matched?.[1] ? decodeEntities(matched[1].trim()) : '';
+function resolveSearchPlan(text, intent) {
+  const source = (text || '').trim();
+  const language = detectSearchLanguage(source);
+  const urgentGame = /(今天|刚刚|现在|停服|维护|上线|兑换码|today|now)/i.test(source);
+  const versionSensitiveGuide = /(最新|当前版本|版本|meta|赛季|强度榜|卡池|build|tier list|current|latest)/i.test(source);
+  const oldOrGeneralGuide = /(老游戏|怀旧|基础|新手技巧|机制|教程|入门)/i.test(source);
+
+  const plan = {
+    endpoint: 'web',
+    freshness: 'pw',
+    query: source.slice(0, 120) || 'latest news',
+    intent,
+    ...language
+  };
+
+  if (intent === 'news' || intent === 'gossip') {
+    plan.endpoint = 'news';
+    plan.freshness = 'pd';
+  } else if (intent === 'game_realtime') {
+    plan.endpoint = 'web';
+    plan.freshness = urgentGame ? 'pd' : 'pw';
+  } else if (intent === 'game_guide') {
+    plan.endpoint = 'web';
+    plan.freshness = oldOrGeneralGuide && !versionSensitiveGuide ? '' : versionSensitiveGuide ? 'pw' : 'pm';
+  } else if (intent === 'general_fresh' || intent === 'explicit_search') {
+    plan.endpoint = 'web';
+    plan.freshness = 'pw';
+  }
+
+  plan.query = rewriteSearchQuery(source, intent);
+  return plan;
 }
 
-async function fetchNewsSnapshot(query) {
-  const q = query.trim().slice(0, 90) || 'latest world news';
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`;
+function rewriteSearchQuery(text, intent) {
+  const source = (text || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+  if (!source) return intent === 'news' || intent === 'gossip' ? 'latest news' : 'current information';
+
+  if (intent !== 'game_guide') return source;
+
+  const additions = [];
+  if (!/(攻略|guide|walkthrough)/i.test(source)) additions.push('攻略');
+  if (/(配队|阵容)/i.test(source) && !/阵容/.test(source)) additions.push('阵容');
+  if (/(配装|build|出装|铭文|符文|天赋|加点)/i.test(source) && !/(配装|build)/i.test(source)) {
+    additions.push('配装');
+  }
+  if (/(打法|怎么打|通关|怎么过|隐藏结局|隐藏任务)/i.test(source) && !/打法/.test(source)) {
+    additions.push('打法');
+  }
+  if (/(最新|当前版本|版本|meta|赛季|强度榜|tier list|current|latest)/i.test(source) && !/当前版本/.test(source)) {
+    additions.push('当前版本');
+  }
+
+  return [source, ...additions].join(' ').slice(0, 140);
+}
+
+function normalizeBraveResult(item, searchType, freshness) {
+  const title = item?.title || item?.name || '';
+  const url = item?.url || item?.profile?.url || '';
+  const description = item?.description || item?.snippet || '';
+  const age = item?.age || '';
+  const published = item?.page_age || item?.published || item?.date || '';
+  const source = item?.source || item?.meta_url?.hostname || '';
+
+  if (!title && !description) return null;
+  return {
+    title,
+    url,
+    description,
+    age,
+    published,
+    source,
+    searchType,
+    freshness
+  };
+}
+
+async function requestBraveSearch(plan, freshnessOverride) {
+  if (!BRAVE_SEARCH_API_KEY) return { ok: false, reason: 'missing_api_key', results: [] };
+
+  const freshness = freshnessOverride ?? plan.freshness;
+  const endpointPath = plan.endpoint === 'news' ? '/res/v1/news/search' : '/res/v1/web/search';
+  const url = new URL(`https://api.search.brave.com${endpointPath}`);
+  url.searchParams.set('q', plan.query);
+  url.searchParams.set('count', plan.endpoint === 'news' ? '5' : '5');
+  url.searchParams.set('country', plan.country);
+  url.searchParams.set('search_lang', plan.searchLang);
+  url.searchParams.set('ui_lang', plan.uiLang);
+  url.searchParams.set('extra_snippets', 'true');
+  url.searchParams.set('safesearch', 'moderate');
+  if (freshness) url.searchParams.set('freshness', freshness);
+
   try {
     const resp = await fetchWithTimeout(
-      url,
+      url.toString(),
       {
         headers: {
+          Accept: 'application/json',
+          'X-Subscription-Token': BRAVE_SEARCH_API_KEY,
           'User-Agent': 'Mozilla/5.0 (compatible; MiniChatRuntime/1.0)'
         }
       },
       4500
     );
-    if (!resp.ok) return [];
-    const xml = await resp.text();
-    const blocks = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-    return blocks.slice(0, 3).map((item) => ({
-      title: pickFirstTag(item, 'title'),
-      pubDate: pickFirstTag(item, 'pubDate')
-    }));
+    if (!resp.ok) return { ok: false, reason: `http_${resp.status}`, results: [] };
+    const data = await resp.json();
+    const rawResults = plan.endpoint === 'news' ? data?.results || [] : data?.web?.results || data?.results || [];
+    const results = rawResults
+      .map((item) => normalizeBraveResult(item, plan.endpoint, freshness || 'none'))
+      .filter(Boolean)
+      .slice(0, 5);
+    return { ok: true, reason: '', results };
   } catch {
-    return [];
+    return { ok: false, reason: 'request_failed', results: [] };
   }
+}
+
+async function fetchSearchSnapshot(query, intent) {
+  const plan = resolveSearchPlan(query, intent);
+  const first = await requestBraveSearch(plan);
+  if (first.results.length > 0) return { ...first, plan };
+
+  if ((intent === 'news' || intent === 'gossip') && plan.freshness === 'pd') {
+    const fallback = await requestBraveSearch(plan, 'pw');
+    return { ...fallback, plan: { ...plan, freshness: 'pw' } };
+  }
+
+  return { ...first, plan };
 }
 
 async function buildRuntimeContext({ text, clientTimeZone, locale, signals }) {
@@ -362,10 +493,38 @@ async function buildRuntimeContext({ text, clientTimeZone, locale, signals }) {
   }
 
   if (signals.needSearch) {
-    const news = await fetchNewsSnapshot(text);
-    if (news.length > 0) {
-      const lines = news.map((item, idx) => `${idx + 1}. ${item.title} (${item.pubDate || 'time unknown'})`);
-      blocks.push(['[Live Search Snapshot]', '- Source: Google News RSS', ...lines].join('\n'));
+    const snapshot = await fetchSearchSnapshot(text, signals.searchIntent);
+    if (snapshot.results.length > 0) {
+      const lines = snapshot.results.map((item, idx) =>
+        [
+          `${idx + 1}. ${item.title || 'Untitled'}`,
+          `   - URL: ${item.url || 'unknown'}`,
+          `   - Description: ${item.description || 'none'}`,
+          `   - Age/Published: ${item.age || item.published || 'unknown'}`,
+          `   - Source: ${item.source || 'unknown'}`,
+          `   - Search type: ${item.searchType}; freshness: ${item.freshness}`
+        ].join('\n')
+      );
+      blocks.push(
+        [
+          '[Live Search Snapshot]',
+          '- Source: Brave Search API',
+          `- Intent: ${signals.searchIntent}`,
+          `- Query: ${snapshot.plan.query}`,
+          `- Endpoint: ${snapshot.plan.endpoint}; freshness: ${snapshot.plan.freshness || 'none'}`,
+          ...lines
+        ].join('\n')
+      );
+    } else {
+      blocks.push(
+        [
+          '[Live Search Snapshot]',
+          '- Source: Brave Search API',
+          `- Intent: ${signals.searchIntent}`,
+          `- Search unavailable or no reliable live results found: ${snapshot.reason || 'no_results'}`,
+          '- Do not invent current facts. State uncertainty if fresh data is required.'
+        ].join('\n')
+      );
     }
   }
 
@@ -377,6 +536,10 @@ function buildSystemInstruction({ soulText, userProfile, runtimeContext, signals
     'Runtime rules:',
     '- If runtime context is present, prioritize it over model memory.',
     '- If the question requires fresh data but runtime context is missing, state uncertainty explicitly.',
+    '- If live search results are present, use them as grounding and include source names or URLs when useful.',
+    '- For gossip or leak-like topics, distinguish confirmed facts from claims, rumors, or media reports.',
+    '- For game guides, mention the applicable version or source date when available; if unclear, say the guidance may be outdated.',
+    '- If live search is unavailable or weak, say so plainly instead of inventing current facts.',
     '- Keep answers concise and practical.',
     '- Do not insult, mock, or attack the user.'
   ];
@@ -479,7 +642,8 @@ export default async function handler(req, res) {
         signals.coding ? 'coding' : '',
         signals.needRealtime ? 'realtime' : '',
         signals.needGoldPrice ? 'gold' : '',
-        signals.needSearch ? 'search' : ''
+        signals.needSearch ? 'search' : '',
+        signals.searchIntent !== 'none' ? `search_${signals.searchIntent}` : ''
       ]
         .filter(Boolean)
         .join(',')

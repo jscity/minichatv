@@ -27,7 +27,7 @@ const SOUL_COOKIE = 'soul_mode';
 const PROFILE_COOKIE = 'mini_pref';
 const UNLOCK_COOKIE = 'terminal_unlock';
 const DEFAULT_SOUL_MODE: SoulMode = 'machine';
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.0.1';
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.1.0';
 const DISPLAY_VERSION = `v${APP_VERSION}`;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
 const DEFAULT_PROFILE: UserProfile = {
@@ -668,10 +668,7 @@ export function ChatInterface() {
           {!hasMessages && (
             <div className="welcome-message">
               <div className="ascii-art">
-                ╔══════════════════════════════╗<br />
-                ║&nbsp;&nbsp;RETRO CHAT SYSTEM - {DISPLAY_VERSION}&nbsp;&nbsp;║<br />
-                ║&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;║<br />
-                ╚══════════════════════════════╝
+                RETRO CHAT SYSTEM - {DISPLAY_VERSION}
               </div>
             </div>
           )}

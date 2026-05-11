@@ -5,7 +5,7 @@
 ## 功能概览
 
 - ⚡️ `/api/chat` 支持流式响应，按问题类型自动路由到快模型或思考模型。
-- 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、在线新闻快照。
+- 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、Brave 在线搜索快照。
 - 🧠 轻量偏好记忆（cookie）：按话题/语气/受众模式进行回答风格微调；代码类问题只作为当前路由信号，不写入长期身份偏好。
 - 🎭 默认机器灵魂 + 四个可选灵魂：默认绿色 `Machine` 不出现在菜单中；菜单提供 `Gentle`、`Pro`、`Sharp`、`Savage`。高风险问题会自动回退到更稳健风格。
 - 🔐 首次访问需要输入密码（来自 `PASSCODE.md`），通过后写入 cookie，cookie 有效期内免重复输入。
@@ -23,7 +23,7 @@ npm install
 # 启动前端开发服务器（默认代理到 8787）
 npm run dev
 
-# 另开终端启动后端代理（需要 OPENAI_API_KEY ）
+# 另开终端启动后端代理（需要 OPENAI_API_KEY；在线搜索需要 BRAVE_SEARCH_API_KEY）
 OPENAI_API_KEY=... npm run start
 ```
 
@@ -68,6 +68,7 @@ Install Command: npm install
 
 ```bash
 OPENAI_API_KEY=你的真实密钥
+BRAVE_SEARCH_API_KEY=你的 Brave Search API 密钥   # 可选；启用在线搜索
 QUICK_MODEL=gemini-3-flash-preview     # 可选
 THINKING_MODEL=gemini-3.1-pro-preview    # 可选
 DEFAULT_SOUL_MODE=machine              # 可选: machine/gentle/pro/sharp/savage
@@ -79,6 +80,7 @@ SYSTEM_PROMPT=You are a concise assistant.   # 可选
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | 必填，上游模型服务的密钥 | 无 |
+| `BRAVE_SEARCH_API_KEY` | 可选，Brave Search API 密钥；用于新闻、吃瓜、游戏实时/攻略搜索 | 空 |
 | `QUICK_MODEL` | 快速模型（普通问题） | `gemini-3-flash-preview` |
 | `THINKING_MODEL` | 思考模型（高风险/复杂问题） | `gemini-3.1-pro-preview` |
 | `MODEL` | 全局兜底模型（兼容旧配置） | 空 |

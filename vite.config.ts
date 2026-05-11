@@ -11,7 +11,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as { ve
 export default defineConfig({
   plugins: [react()],
   define: {
-    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version || '2.0.1')
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version || '2.1.0')
   },
   server: {
     port: 5173,

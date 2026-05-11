@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 2.1.0 - 2026-05-11
+- Replaced Google News RSS snapshots with Brave Search API runtime context.
+- Added intent-based live search routing for news, gossip, game realtime updates, and game guides.
+- Updated the welcome screen version display to `v2.1.0` and removed the ASCII frame around the version title.
+
 ## 2.0.0 - 2026-02-12
 - Added `SOUL.md` to define assistant personality and response style.
 - Updated `server.js` to load `SOUL.md` as system prompt with fallback to `SYSTEM_PROMPT`.
