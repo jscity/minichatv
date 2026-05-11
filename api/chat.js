@@ -407,7 +407,8 @@ function normalizeBraveResult(item, searchType, freshness) {
 }
 
 async function requestBraveSearch(plan, freshnessOverride) {
-  if (!BRAVE_SEARCH_API_KEY) return { ok: false, reason: 'missing_api_key', results: [] };
+  const token = typeof BRAVE_SEARCH_API_KEY === 'string' ? BRAVE_SEARCH_API_KEY.trim() : '';
+  if (!token) return { ok: false, reason: 'missing_api_key', results: [] };
 
   const freshness = freshnessOverride ?? plan.freshness;
   const endpointPath = plan.endpoint === 'news' ? '/res/v1/news/search' : '/res/v1/web/search';
@@ -427,7 +428,7 @@ async function requestBraveSearch(plan, freshnessOverride) {
       {
         headers: {
           Accept: 'application/json',
-          'X-Subscription-Token': BRAVE_SEARCH_API_KEY,
+          'X-Subscription-Token': token,
           'User-Agent': 'Mozilla/5.0 (compatible; MiniChatRuntime/1.0)'
         }
       },
@@ -453,7 +454,15 @@ async function fetchSearchSnapshot(query, intent) {
 
   if ((intent === 'news' || intent === 'gossip') && plan.freshness === 'pd') {
     const fallback = await requestBraveSearch(plan, 'pw');
-    return { ...fallback, plan: { ...plan, freshness: 'pw' } };
+    if (fallback.results.length > 0) return { ...fallback, plan: { ...plan, freshness: 'pw' } };
+
+    const webFallbackPlan = { ...plan, endpoint: 'web', freshness: 'pw' };
+    const webFallback = await requestBraveSearch(webFallbackPlan);
+    return {
+      ...webFallback,
+      reason: webFallback.reason || fallback.reason || first.reason,
+      plan: webFallbackPlan
+    };
   }
 
   return { ...first, plan };
@@ -461,6 +470,13 @@ async function fetchSearchSnapshot(query, intent) {
 
 async function buildRuntimeContext({ text, clientTimeZone, locale, signals }) {
   const blocks = [];
+  const diagnostics = {
+    searchStatus: 'not_requested',
+    searchReason: '',
+    searchIntent: signals.searchIntent || 'none',
+    searchEndpoint: '',
+    searchFreshness: ''
+  };
   const now = new Date();
   const tz = resolveTimeZone(clientTimeZone);
   const localTime = formatTimeForZone(now, tz, locale);
@@ -494,6 +510,10 @@ async function buildRuntimeContext({ text, clientTimeZone, locale, signals }) {
 
   if (signals.needSearch) {
     const snapshot = await fetchSearchSnapshot(text, signals.searchIntent);
+    diagnostics.searchStatus = snapshot.results.length > 0 ? 'ok' : 'failed';
+    diagnostics.searchReason = snapshot.reason || (snapshot.results.length > 0 ? '' : 'no_results');
+    diagnostics.searchEndpoint = snapshot.plan?.endpoint || '';
+    diagnostics.searchFreshness = snapshot.plan?.freshness || 'none';
     if (snapshot.results.length > 0) {
       const lines = snapshot.results.map((item, idx) =>
         [
@@ -528,7 +548,7 @@ async function buildRuntimeContext({ text, clientTimeZone, locale, signals }) {
     }
   }
 
-  return blocks.join('\n\n');
+  return { text: blocks.join('\n\n'), diagnostics };
 }
 
 function buildSystemInstruction({ soulText, userProfile, runtimeContext, signals }) {
@@ -591,12 +611,14 @@ export default async function handler(req, res) {
     const soulMode = resolveSoulMode(payload?.soulMode || cookies.soul_mode, signals.highStakes);
     const soulResult = readSoulText(soulMode);
     const soulText = soulResult.text;
-    const runtimeContext = await buildRuntimeContext({
+    const runtimeContextResult = await buildRuntimeContext({
       text,
       clientTimeZone: payload?.clientTimeZone || cookies.client_tz,
       locale: payload?.locale || 'zh-CN',
       signals
     });
+    const runtimeContext = runtimeContextResult.text;
+    const runtimeDiagnostics = runtimeContextResult.diagnostics;
     const systemPrompt = buildSystemInstruction({
       soulText,
       userProfile,
@@ -634,6 +656,11 @@ export default async function handler(req, res) {
     res.setHeader('X-Route-Model', route.tier);
     res.setHeader('X-Route-Soul', soulMode);
     res.setHeader('X-Route-Soul-Source', soulResult.source);
+    res.setHeader('X-Route-Search-Intent', runtimeDiagnostics.searchIntent);
+    res.setHeader('X-Route-Search-Status', runtimeDiagnostics.searchStatus);
+    if (runtimeDiagnostics.searchReason) res.setHeader('X-Route-Search-Reason', runtimeDiagnostics.searchReason);
+    if (runtimeDiagnostics.searchEndpoint) res.setHeader('X-Route-Search-Endpoint', runtimeDiagnostics.searchEndpoint);
+    if (runtimeDiagnostics.searchFreshness) res.setHeader('X-Route-Search-Freshness', runtimeDiagnostics.searchFreshness);
     res.setHeader(
       'X-Route-Tags',
       [
