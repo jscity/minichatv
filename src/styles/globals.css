@@ -257,6 +257,70 @@ body {
   --soul-indicator-rgb: 255, 154, 154;
 }
 
+.retro-terminal.theme-terminal.soul-mode-gentle {
+  --terminal-text: #8dffd8;
+  --terminal-accent-rgb: 141, 255, 216;
+  --terminal-grid-rgb: 141, 255, 216;
+  --terminal-glow-rgb: 141, 255, 216;
+  --terminal-accent: rgba(141, 255, 216, 0.38);
+  --terminal-accent-strong: rgba(141, 255, 216, 0.76);
+  --terminal-border: rgba(141, 255, 216, 0.28);
+  --assistant-text: #a9ffe4;
+  --panel-border: rgba(141, 255, 216, 0.35);
+  --button-bg: rgba(27, 91, 73, 0.48);
+  --button-border: rgba(141, 255, 216, 0.42);
+  --button-hover-bg: rgba(37, 120, 96, 0.5);
+  --button-hover-border: rgba(141, 255, 216, 0.68);
+}
+
+.retro-terminal.theme-terminal.soul-mode-pro {
+  --terminal-text: #93b9ff;
+  --terminal-accent-rgb: 147, 185, 255;
+  --terminal-grid-rgb: 147, 185, 255;
+  --terminal-glow-rgb: 147, 185, 255;
+  --terminal-accent: rgba(147, 185, 255, 0.38);
+  --terminal-accent-strong: rgba(147, 185, 255, 0.78);
+  --terminal-border: rgba(147, 185, 255, 0.28);
+  --assistant-text: #b4ccff;
+  --panel-border: rgba(147, 185, 255, 0.34);
+  --button-bg: rgba(35, 57, 103, 0.5);
+  --button-border: rgba(147, 185, 255, 0.42);
+  --button-hover-bg: rgba(45, 75, 134, 0.55);
+  --button-hover-border: rgba(147, 185, 255, 0.7);
+}
+
+.retro-terminal.theme-terminal.soul-mode-sharp {
+  --terminal-text: #ffe58a;
+  --terminal-accent-rgb: 255, 229, 138;
+  --terminal-grid-rgb: 255, 229, 138;
+  --terminal-glow-rgb: 255, 229, 138;
+  --terminal-accent: rgba(255, 229, 138, 0.38);
+  --terminal-accent-strong: rgba(255, 229, 138, 0.78);
+  --terminal-border: rgba(255, 229, 138, 0.28);
+  --assistant-text: #ffe58a;
+  --panel-border: rgba(255, 229, 138, 0.34);
+  --button-bg: rgba(102, 82, 26, 0.48);
+  --button-border: rgba(255, 229, 138, 0.42);
+  --button-hover-bg: rgba(135, 106, 30, 0.55);
+  --button-hover-border: rgba(255, 229, 138, 0.7);
+}
+
+.retro-terminal.theme-terminal.soul-mode-savage {
+  --terminal-text: #ff9a9a;
+  --terminal-accent-rgb: 255, 154, 154;
+  --terminal-grid-rgb: 255, 154, 154;
+  --terminal-glow-rgb: 255, 154, 154;
+  --terminal-accent: rgba(255, 154, 154, 0.38);
+  --terminal-accent-strong: rgba(255, 154, 154, 0.78);
+  --terminal-border: rgba(255, 154, 154, 0.3);
+  --assistant-text: #ffb0a8;
+  --panel-border: rgba(255, 154, 154, 0.36);
+  --button-bg: rgba(103, 42, 42, 0.5);
+  --button-border: rgba(255, 154, 154, 0.45);
+  --button-hover-bg: rgba(135, 52, 52, 0.58);
+  --button-hover-border: rgba(255, 154, 154, 0.72);
+}
+
 .terminal-header {
   display: flex;
   align-items: center;
