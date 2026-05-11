@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Send, MoreHorizontal, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Send, MoreHorizontal, Maximize2, Minimize2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 type SoulMode = 'machine' | 'gentle' | 'pro' | 'sharp' | 'savage';
+type ThemeMode = 'terminal' | 'comfort';
 type TopicPreference = 'general' | 'emotion' | 'game' | 'medical' | 'elder' | 'kids';
 type TonePreference = 'balanced' | 'warm' | 'direct' | 'professional';
 type AudienceMode = 'general' | 'elder' | 'kids';
@@ -24,9 +25,11 @@ interface Message {
 }
 
 const SOUL_COOKIE = 'soul_mode';
+const THEME_COOKIE = 'theme_mode';
 const PROFILE_COOKIE = 'mini_pref';
 const UNLOCK_COOKIE = 'terminal_unlock';
 const DEFAULT_SOUL_MODE: SoulMode = 'machine';
+const DEFAULT_THEME_MODE: ThemeMode = 'terminal';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.1.0';
 const DISPLAY_VERSION = `v${APP_VERSION}`;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
@@ -65,6 +68,10 @@ const normalizeSoulMode = (value: string): SoulMode => {
   const mapped = alias[normalized] || normalized;
   if (mapped === 'machine' || mapped === 'gentle' || mapped === 'pro' || mapped === 'sharp' || mapped === 'savage') return mapped;
   return DEFAULT_SOUL_MODE;
+};
+
+const normalizeThemeMode = (value: string): ThemeMode => {
+  return value === 'comfort' ? 'comfort' : DEFAULT_THEME_MODE;
 };
 
 const formatTime = (iso: string) => {
@@ -242,6 +249,10 @@ export function ChatInterface() {
   const [isSending, setIsSending] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isSoulMenuOpen, setIsSoulMenuOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const saved = readCookie(THEME_COOKIE);
+    return saved ? normalizeThemeMode(saved) : DEFAULT_THEME_MODE;
+  });
   const [soulMode, setSoulMode] = useState<SoulMode>(() => {
     const saved = readCookie(SOUL_COOKIE);
     return saved ? normalizeSoulMode(saved) : DEFAULT_SOUL_MODE;
@@ -277,6 +288,14 @@ export function ChatInterface() {
     }
     writeCookie(SOUL_COOKIE, soulMode, 365);
   }, [soulMode]);
+
+  useEffect(() => {
+    if (themeMode === DEFAULT_THEME_MODE) {
+      deleteCookie(THEME_COOKIE);
+      return;
+    }
+    writeCookie(THEME_COOKIE, themeMode, 365);
+  }, [themeMode]);
 
   useEffect(() => {
     writeCookie(PROFILE_COOKIE, JSON.stringify(userProfile), 180);
@@ -541,6 +560,10 @@ export function ChatInterface() {
     setIsFocusMode((prev) => !prev);
   }, []);
 
+  const toggleThemeMode = useCallback(() => {
+    setThemeMode((prev) => (prev === 'comfort' ? 'terminal' : 'comfort'));
+  }, []);
+
   const handleDesktopUnlockSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void submitUnlock(unlockInput);
@@ -625,7 +648,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className={`retro-terminal soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
+    <div className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
       {!isFocusMode && (
         <div className="terminal-header">
           <div className="terminal-title">
@@ -659,14 +682,26 @@ export function ChatInterface() {
 
       <div className="chat-container">
         <div className="chat-messages">
-          <button
-            type="button"
-            className="focus-toggle-button"
-            onClick={toggleFocusMode}
-            aria-label={isFocusMode ? 'Exit focus mode' : 'Enter focus mode'}
-          >
-            {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
+          <div className="top-left-controls">
+            <button
+              type="button"
+              className="top-control-button focus-toggle-button"
+              onClick={toggleFocusMode}
+              aria-label={isFocusMode ? 'Exit focus mode' : 'Enter focus mode'}
+              title={isFocusMode ? 'Exit focus mode' : 'Enter focus mode'}
+            >
+              {isFocusMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+            <button
+              type="button"
+              className="top-control-button theme-toggle-button"
+              onClick={toggleThemeMode}
+              aria-label={themeMode === 'comfort' ? 'Use terminal theme' : 'Use comfort theme'}
+              title={themeMode === 'comfort' ? 'Use terminal theme' : 'Use comfort theme'}
+            >
+              <BookOpen size={14} />
+            </button>
+          </div>
 
           {!hasMessages && (
             <div className="welcome-message">
