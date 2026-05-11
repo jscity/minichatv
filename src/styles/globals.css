@@ -59,36 +59,33 @@ body {
 
 .retro-terminal.theme-comfort {
   color-scheme: light;
-  --terminal-bg: #f3f0e8;
-  --terminal-backdrop: #f3f0e8;
-  --terminal-text: #3f4741;
-  --terminal-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --terminal-accent-rgb: 91, 119, 103;
-  --terminal-grid-rgb: 111, 134, 121;
-  --terminal-glow-rgb: 126, 145, 134;
-  --terminal-accent: rgba(91, 119, 103, 0.24);
-  --terminal-accent-strong: rgba(56, 84, 68, 0.82);
-  --terminal-border: rgba(82, 102, 91, 0.18);
-  --assistant-text: #39443e;
-  --user-text: #6b5637;
+  --terminal-bg: #f8f5ef;
+  --terminal-backdrop: #f8f5ef;
+  --terminal-text: #222;
+  --terminal-font: 'Inter', 'PingFang SC', system-ui, sans-serif;
+  --terminal-accent-rgb: 78, 93, 84;
+  --terminal-grid-rgb: 78, 93, 84;
+  --terminal-glow-rgb: 78, 93, 84;
+  --terminal-accent: rgba(78, 93, 84, 0.2);
+  --terminal-accent-strong: rgba(34, 34, 34, 0.78);
+  --terminal-border: rgba(34, 34, 34, 0.12);
+  --assistant-text: #222;
+  --user-text: #4e4130;
   --error-text: #9a4d48;
-  --panel-bg: rgba(255, 253, 247, 0.86);
-  --panel-border: rgba(92, 112, 101, 0.24);
-  --button-bg: rgba(247, 244, 235, 0.92);
-  --button-border: rgba(91, 119, 103, 0.28);
-  --button-hover-bg: rgba(235, 240, 232, 0.96);
-  --button-hover-border: rgba(91, 119, 103, 0.42);
-  --yellow-border: rgba(143, 116, 67, 0.32);
-  --yellow-bg: rgba(244, 236, 219, 0.92);
-  --yellow-hover-bg: rgba(237, 227, 206, 0.96);
-  --header-bg: linear-gradient(180deg, rgba(250, 248, 241, 0.96), rgba(238, 234, 224, 0.94));
-  --input-bg: rgba(255, 253, 247, 0.78);
-  --code-bg: rgba(91, 119, 103, 0.1);
-  --shadow-soft: 0 8px 22px rgba(61, 70, 64, 0.08);
-  background-image:
-    linear-gradient(90deg, transparent 97%, rgba(var(--terminal-grid-rgb), 0.025) 99%),
-    linear-gradient(transparent 97%, rgba(var(--terminal-grid-rgb), 0.025) 99%),
-    linear-gradient(180deg, #f7f4ec, #ece8dd);
+  --panel-bg: rgba(248, 245, 239, 0.92);
+  --panel-border: rgba(34, 34, 34, 0.14);
+  --button-bg: rgba(255, 252, 246, 0.82);
+  --button-border: rgba(34, 34, 34, 0.16);
+  --button-hover-bg: rgba(239, 234, 225, 0.94);
+  --button-hover-border: rgba(34, 34, 34, 0.26);
+  --yellow-border: rgba(78, 65, 48, 0.22);
+  --yellow-bg: rgba(239, 234, 225, 0.84);
+  --yellow-hover-bg: rgba(230, 224, 214, 0.94);
+  --header-bg: rgba(248, 245, 239, 0.94);
+  --input-bg: rgba(255, 252, 246, 0.84);
+  --code-bg: rgba(34, 34, 34, 0.06);
+  --shadow-soft: 0 8px 22px rgba(34, 34, 34, 0.06);
+  background-image: none;
 }
 
 .lock-shell {
@@ -879,38 +876,65 @@ body {
 .theme-comfort .desktop-pass-input,
 .theme-comfort .dial-key,
 .theme-comfort .top-control-button {
-  background: rgba(255, 253, 247, 0.78);
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.theme-comfort .chat-messages {
+  align-items: center;
+  font-size: 18px;
+  line-height: 1.85;
+}
+
+.theme-comfort .top-left-controls,
+.theme-comfort .welcome-message,
+.theme-comfort .message {
+  width: min(100%, 700px);
+}
+
+.theme-comfort .message-content,
+.theme-comfort .markdown-content {
+  line-height: 1.85;
 }
 
 .theme-comfort .soul-menu-panel {
   background:
-    linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(242, 238, 229, 0.96)),
-    radial-gradient(circle at top left, rgba(var(--terminal-accent-rgb), 0.08), transparent 55%);
+    linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(248, 245, 239, 0.98));
 }
 
 .theme-comfort .input-section {
-  background: linear-gradient(180deg, rgba(248, 246, 239, 0.92), rgba(239, 235, 226, 0.96));
+  align-items: center;
+  background: rgba(248, 245, 239, 0.94);
+}
+
+.theme-comfort .input-container,
+.theme-comfort .button-group {
+  width: min(100%, 700px);
+}
+
+.theme-comfort .chat-input {
+  font-size: 18px;
+  line-height: 1.85;
 }
 
 .theme-comfort .markdown-content pre {
-  background: rgba(247, 244, 235, 0.88);
+  background: rgba(255, 252, 246, 0.78);
 }
 
 .theme-comfort .soul-menu-desc {
-  color: rgba(63, 71, 65, 0.66);
+  color: rgba(34, 34, 34, 0.62);
 }
 
 .theme-comfort .user-message .message-header,
 .theme-comfort .user-message .message-prefix {
-  color: rgba(107, 86, 55, 0.72);
+  color: rgba(78, 65, 48, 0.72);
 }
 
 .theme-comfort .message-time {
-  color: rgba(63, 71, 65, 0.44);
+  color: rgba(34, 34, 34, 0.44);
 }
 
 .theme-comfort .scanlines {
-  opacity: 0.16;
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
