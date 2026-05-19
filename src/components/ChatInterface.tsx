@@ -308,7 +308,7 @@ export function ChatInterface() {
         : 0;
       const keyboardInset = Math.max(reportedKeyboardInset, measuredKeyboardInset);
       const isKeyboardVisible = isMobileViewport() && (keyboardInset > 80 || keyboardByHeight);
-      const appViewportHeight = themeMode === 'comfort' && isInputFocused && isKeyboardVisible
+      const appViewportHeight = isInputFocused && isKeyboardVisible
         ? viewportHeight
         : layoutHeight;
 
@@ -718,7 +718,7 @@ export function ChatInterface() {
   return (
     <div
       className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}${
-        themeMode === 'comfort' && isMobileDevice && isInputFocused && hasVisualKeyboard ? ' keyboard-active' : ''
+        isMobileDevice && isInputFocused && hasVisualKeyboard ? ' keyboard-active' : ''
       }`}
     >
       {!isFocusMode && (
