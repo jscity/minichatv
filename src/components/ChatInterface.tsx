@@ -292,6 +292,7 @@ export function ChatInterface() {
     const syncViewport = () => {
       const viewport = window.visualViewport;
       const viewportHeight = viewport?.height ?? window.innerHeight;
+      const layoutHeight = window.innerHeight;
       const viewportOffsetTop = viewport?.offsetTop ?? 0;
 
       if (!viewportBaselineRef.current || viewportHeight > viewportBaselineRef.current) {
@@ -306,10 +307,14 @@ export function ChatInterface() {
         ? Math.max(0, viewportBaselineRef.current - viewportHeight - viewportOffsetTop)
         : 0;
       const keyboardInset = Math.max(reportedKeyboardInset, measuredKeyboardInset);
+      const isKeyboardVisible = isMobileViewport() && (keyboardInset > 80 || keyboardByHeight);
+      const appViewportHeight = themeMode === 'comfort' && isInputFocused && isKeyboardVisible
+        ? viewportHeight
+        : layoutHeight;
 
-      root.style.setProperty('--app-viewport-height', `${Math.round(viewportHeight)}px`);
+      root.style.setProperty('--app-viewport-height', `${Math.round(appViewportHeight)}px`);
       root.style.setProperty('--keyboard-inset', `${Math.round(keyboardInset)}px`);
-      setHasVisualKeyboard(isMobileViewport() && (keyboardInset > 80 || keyboardByHeight));
+      setHasVisualKeyboard(isKeyboardVisible);
     };
 
     const resetViewportBaseline = () => {
@@ -332,7 +337,7 @@ export function ChatInterface() {
       root.style.removeProperty('--app-viewport-height');
       root.style.removeProperty('--keyboard-inset');
     };
-  }, []);
+  }, [isInputFocused, themeMode]);
 
   useEffect(() => {
     if (soulMode === DEFAULT_SOUL_MODE) {
