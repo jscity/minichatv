@@ -248,8 +248,6 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false);
-  const [hasVisualKeyboard, setHasVisualKeyboard] = useState(false);
   const [isSoulMenuOpen, setIsSoulMenuOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = readCookie(THEME_COOKIE);
@@ -263,7 +261,6 @@ export function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const viewportBaselineRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -285,61 +282,6 @@ export function ChatInterface() {
   }, [messages]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const root = document.documentElement;
-
-    const syncViewport = () => {
-      const viewport = window.visualViewport;
-      const viewportHeight = viewport?.height ?? window.innerHeight;
-      const layoutHeight = window.innerHeight;
-      const viewportOffsetTop = viewport?.offsetTop ?? 0;
-
-      if (!viewportBaselineRef.current || viewportHeight > viewportBaselineRef.current) {
-        viewportBaselineRef.current = viewportHeight;
-      }
-
-      const reportedKeyboardInset = viewport
-        ? Math.max(0, window.innerHeight - viewportHeight - viewportOffsetTop)
-        : 0;
-      const keyboardByHeight = viewportBaselineRef.current - viewportHeight > 120;
-      const measuredKeyboardInset = keyboardByHeight
-        ? Math.max(0, viewportBaselineRef.current - viewportHeight - viewportOffsetTop)
-        : 0;
-      const keyboardInset = Math.max(reportedKeyboardInset, measuredKeyboardInset);
-      const isKeyboardVisible = isMobileViewport() && (keyboardInset > 80 || keyboardByHeight);
-      const appViewportHeight = isInputFocused && isKeyboardVisible
-        ? viewportHeight
-        : layoutHeight;
-
-      root.style.setProperty('--app-viewport-height', `${Math.round(appViewportHeight)}px`);
-      root.style.setProperty('--keyboard-inset', `${Math.round(keyboardInset)}px`);
-      setHasVisualKeyboard(isKeyboardVisible);
-    };
-
-    const resetViewportBaseline = () => {
-      viewportBaselineRef.current = 0;
-      syncViewport();
-      window.setTimeout(syncViewport, 300);
-    };
-
-    syncViewport();
-    window.addEventListener('resize', syncViewport);
-    window.addEventListener('orientationchange', resetViewportBaseline);
-    window.visualViewport?.addEventListener('resize', syncViewport);
-    window.visualViewport?.addEventListener('scroll', syncViewport);
-
-    return () => {
-      window.removeEventListener('resize', syncViewport);
-      window.removeEventListener('orientationchange', resetViewportBaseline);
-      window.visualViewport?.removeEventListener('resize', syncViewport);
-      window.visualViewport?.removeEventListener('scroll', syncViewport);
-      root.style.removeProperty('--app-viewport-height');
-      root.style.removeProperty('--keyboard-inset');
-    };
-  }, [isInputFocused, themeMode]);
-
-  useEffect(() => {
     if (soulMode === DEFAULT_SOUL_MODE) {
       deleteCookie(SOUL_COOKIE);
       return;
@@ -348,19 +290,11 @@ export function ChatInterface() {
   }, [soulMode]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = themeMode;
-    document.body.dataset.theme = themeMode;
-
     if (themeMode === DEFAULT_THEME_MODE) {
       deleteCookie(THEME_COOKIE);
-    } else {
-      writeCookie(THEME_COOKIE, themeMode, 365);
+      return;
     }
-
-    return () => {
-      delete document.documentElement.dataset.theme;
-      delete document.body.dataset.theme;
-    };
+    writeCookie(THEME_COOKIE, themeMode, 365);
   }, [themeMode]);
 
   useEffect(() => {
@@ -430,13 +364,6 @@ export function ChatInterface() {
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
-
-  useEffect(() => {
-    if (!isInputFocused || themeMode !== 'comfort' || !isMobileDevice) return;
-    window.setTimeout(() => {
-      textareaRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }, 80);
-  }, [hasVisualKeyboard, isInputFocused, isMobileDevice, themeMode]);
 
   const resetChat = () => {
     setMessages([]);
@@ -716,11 +643,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div
-      className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}${
-        isMobileDevice && isInputFocused && hasVisualKeyboard ? ' keyboard-active' : ''
-      }`}
-    >
+    <div className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
       {!isFocusMode && (
         <div className="terminal-header">
           <div className="terminal-title">
@@ -832,8 +755,6 @@ export function ChatInterface() {
                 placeholder="输入您的消息..."
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={() => setIsInputFocused(false)}
                 className="chat-input"
                 rows={1}
                 disabled={isSending}

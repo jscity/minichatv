@@ -1,7 +1,5 @@
 :root {
   color-scheme: dark;
-  --app-viewport-height: 100vh;
-  --keyboard-inset: 0px;
   --terminal-bg: #000;
   --terminal-text: #36ff7f;
   --terminal-font: 'Courier New', Courier, monospace;
@@ -35,36 +33,15 @@
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
 body {
   margin: 0;
   background: #050505;
   font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
 }
 
-html[data-theme='comfort'],
-body[data-theme='comfort'],
-body[data-theme='comfort'] #root {
-  background: #f8f5ef;
-}
-
-html[data-theme='terminal'],
-body[data-theme='terminal'],
-body[data-theme='terminal'] #root {
-  background: #050505;
-}
-
 .retro-terminal {
   position: relative;
-  min-height: var(--app-viewport-height);
-  height: var(--app-viewport-height);
+  min-height: 100vh;
   background: var(--terminal-bg);
   color: var(--terminal-text);
   overflow: hidden;
@@ -535,12 +512,11 @@ body[data-theme='terminal'] #root {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: calc(var(--app-viewport-height) - 64px);
+  height: calc(100vh - 64px);
 }
 
 .retro-terminal.focus-mode .chat-container {
-  height: var(--app-viewport-height);
+  height: 100vh;
 }
 
 .retro-terminal.focus-mode .chat-messages {
@@ -995,63 +971,8 @@ body[data-theme='terminal'] #root {
     padding: 18px;
   }
 
-  .retro-terminal.keyboard-active .chat-messages {
-    padding-bottom: clamp(210px, 36vh, 280px);
-  }
-
-  .retro-terminal.keyboard-active .input-section {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: max(env(safe-area-inset-bottom), var(--keyboard-inset));
-    z-index: 12;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(34, 34, 34, 0.1);
-    background: rgba(248, 245, 239, 0.96);
-    box-shadow: 0 -8px 24px rgba(34, 34, 34, 0.08);
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .input-section {
-    border-top-color: var(--panel-border);
-    background:
-      radial-gradient(circle at top, rgba(var(--terminal-glow-rgb), 0.08), transparent 60%),
-      linear-gradient(180deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.98));
-    box-shadow: 0 -8px 24px rgba(var(--terminal-glow-rgb), 0.1);
-  }
-
-  .retro-terminal.keyboard-active .input-container,
-  .retro-terminal.keyboard-active .button-group {
-    width: min(calc(100vw - 24px), 700px);
-  }
-
-  .retro-terminal.keyboard-active .input-container {
-    padding: 10px 12px;
-  }
-
-  .retro-terminal.keyboard-active .button-group {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-  }
-
-  .retro-terminal.keyboard-active .new-chat-button {
-    width: auto;
-    min-width: 96px;
-  }
-
-  .retro-terminal.keyboard-active .action-button {
-    min-height: 40px;
-    padding: 9px 12px;
-  }
-
   .button-group {
     flex-direction: column;
-  }
-
-  .retro-terminal.theme-comfort .button-group {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
   }
 
   .retro-terminal.focus-mode .chat-messages {
@@ -1070,51 +991,5 @@ body[data-theme='terminal'] #root {
   .send-button {
     width: 100%;
     justify-content: center;
-  }
-
-  .retro-terminal.theme-comfort .action-button {
-    min-height: 40px;
-    padding: 9px 12px;
-  }
-
-  .retro-terminal.theme-comfort .new-chat-button {
-    width: auto;
-    min-width: 96px;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .chat-messages {
-    padding-bottom: 96px;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .input-section {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
-    gap: 8px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .input-container {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .button-group {
-    width: auto;
-    display: flex;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .send-button {
-    width: auto;
-    min-width: 52px;
-    padding: 0 12px;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .send-button span {
-    display: none;
-  }
-
-  .retro-terminal.theme-terminal.keyboard-active .new-chat-button {
-    display: none;
   }
 }
