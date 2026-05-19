@@ -248,6 +248,8 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [hasVisualKeyboard, setHasVisualKeyboard] = useState(false);
   const [isSoulMenuOpen, setIsSoulMenuOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = readCookie(THEME_COOKIE);
@@ -261,6 +263,7 @@ export function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<Message[]>([]);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const viewportBaselineRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -280,6 +283,56 @@ export function ChatInterface() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const root = document.documentElement;
+
+    const syncViewport = () => {
+      const viewport = window.visualViewport;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const viewportOffsetTop = viewport?.offsetTop ?? 0;
+
+      if (!viewportBaselineRef.current || viewportHeight > viewportBaselineRef.current) {
+        viewportBaselineRef.current = viewportHeight;
+      }
+
+      const reportedKeyboardInset = viewport
+        ? Math.max(0, window.innerHeight - viewportHeight - viewportOffsetTop)
+        : 0;
+      const keyboardByHeight = viewportBaselineRef.current - viewportHeight > 120;
+      const measuredKeyboardInset = keyboardByHeight
+        ? Math.max(0, viewportBaselineRef.current - viewportHeight - viewportOffsetTop)
+        : 0;
+      const keyboardInset = Math.max(reportedKeyboardInset, measuredKeyboardInset);
+
+      root.style.setProperty('--app-viewport-height', `${Math.round(viewportHeight)}px`);
+      root.style.setProperty('--keyboard-inset', `${Math.round(keyboardInset)}px`);
+      setHasVisualKeyboard(isMobileViewport() && (keyboardInset > 80 || keyboardByHeight));
+    };
+
+    const resetViewportBaseline = () => {
+      viewportBaselineRef.current = 0;
+      syncViewport();
+      window.setTimeout(syncViewport, 300);
+    };
+
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    window.addEventListener('orientationchange', resetViewportBaseline);
+    window.visualViewport?.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('scroll', syncViewport);
+
+    return () => {
+      window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('orientationchange', resetViewportBaseline);
+      window.visualViewport?.removeEventListener('resize', syncViewport);
+      window.visualViewport?.removeEventListener('scroll', syncViewport);
+      root.style.removeProperty('--app-viewport-height');
+      root.style.removeProperty('--keyboard-inset');
+    };
+  }, []);
 
   useEffect(() => {
     if (soulMode === DEFAULT_SOUL_MODE) {
@@ -364,6 +417,13 @@ export function ChatInterface() {
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
+
+  useEffect(() => {
+    if (!isInputFocused || themeMode !== 'comfort' || !isMobileDevice) return;
+    window.setTimeout(() => {
+      textareaRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }, 80);
+  }, [hasVisualKeyboard, isInputFocused, isMobileDevice, themeMode]);
 
   const resetChat = () => {
     setMessages([]);
@@ -643,7 +703,11 @@ export function ChatInterface() {
   }
 
   return (
-    <div className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}`}>
+    <div
+      className={`retro-terminal theme-${themeMode} soul-mode-${soulMode}${isFocusMode ? ' focus-mode' : ''}${
+        themeMode === 'comfort' && isMobileDevice && isInputFocused && hasVisualKeyboard ? ' keyboard-active' : ''
+      }`}
+    >
       {!isFocusMode && (
         <div className="terminal-header">
           <div className="terminal-title">
@@ -755,6 +819,8 @@ export function ChatInterface() {
                 placeholder="输入您的消息..."
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
                 className="chat-input"
                 rows={1}
                 disabled={isSending}
