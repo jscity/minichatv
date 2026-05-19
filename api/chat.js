@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildAuditEvent, resolveAuditSession, scheduleAuditLog } from './audit.js';
 
 const {
   MODEL,
-  QUICK_MODEL = 'gemini-3-flash-preview',
-  THINKING_MODEL = 'gemini-3.1-pro-preview',
+  LITE_MODEL,
+  BALANCED_MODEL,
+  PRO_MODEL,
+  QUICK_MODEL,
+  THINKING_MODEL,
   SYSTEM_PROMPT = 'You are a concise assistant.',
   OPENAI_API_KEY,
   BRAVE_SEARCH_API_KEY,
@@ -13,8 +17,10 @@ const {
 } = process.env;
 
 const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
-const FAST_MODEL = QUICK_MODEL || MODEL || 'gemini-3-flash-preview';
-const DEEP_MODEL = THINKING_MODEL || MODEL || 'gemini-3.1-pro-preview';
+const firstConfigured = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim();
+const LITE_ROUTE_MODEL = firstConfigured(LITE_MODEL, QUICK_MODEL, MODEL) || 'gemini-3.1-flash-lite';
+const BALANCED_ROUTE_MODEL = firstConfigured(BALANCED_MODEL, MODEL) || 'gemini-3.5-flash';
+const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, MODEL) || 'gemini-3.1-pro-preview';
 const VALID_SOUL_MODES = new Set(['machine', 'gentle', 'pro', 'sharp', 'savage']);
 const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
@@ -103,6 +109,12 @@ const HIGH_STAKES_RE =
 const COMPLEX_RE =
   /(架构|设计方案|分步骤|trade[- ]?off|debug|排查|算法|深度分析|implementation|refactor|多方案对比|根因分析|推理)/i;
 const CODING_RE = /(代码|编程|开发|调试|bug|api|python|javascript|typescript|react|程序|code|coding|programming)/i;
+const COMPLEX_CODING_RE =
+  /(架构|重构|性能优化|内存泄漏|并发|数据库事务|分布式|ci|部署|根因分析|代码审查|安全漏洞|多文件|复杂\s*bug|类型体操|architecture|refactor|performance|memory leak|concurrency|transaction|distributed|root cause|code review|security vulnerability|multi[- ]?file)/i;
+const ADVANCED_MATH_RE =
+  /(证明|推导|定理|微积分|线性代数|概率论|统计推断|矩阵|特征值|积分|极限|偏导|拉格朗日|拓扑|抽象代数|数论|竞赛题|高等数学|calculus|linear algebra|probability|statistics|matrix|eigenvalue|integral|limit|partial derivative|lagrange|topology|abstract algebra|number theory|proof|derive|theorem)/i;
+const LITE_TASK_RE =
+  /(你好|您好|在吗|谢谢|多谢|早上好|晚上好|晚安|翻译这句|翻译一下|改写这句|改写一下|润色这句|润色一下|总结成一句话|一句话|简单说|简短回答|快点答|快速回答|hello|hi|thanks|thank you|translate this|rewrite this|one sentence|briefly|quick answer)/i;
 const TIME_RE = /(现在几点|当前时间|现在时间|what time|current time|time now|today date|今天几号)/i;
 const GOLD_RE = /(黄金|金价|xau|gold price|gold quote|gold)/i;
 const EXPLICIT_SEARCH_RE = /(搜索|查一下|联网|网上查|实时信息|latest|breaking|online search)/i;
@@ -241,10 +253,26 @@ function classifySearchIntent(text) {
 function detectSignals(text) {
   const source = (text || '').trim();
   const searchIntent = classifySearchIntent(source);
+  const highStakes = HIGH_STAKES_RE.test(source);
+  const coding = CODING_RE.test(source);
+  const complexCoding = coding && COMPLEX_CODING_RE.test(source);
+  const advancedMath = ADVANCED_MATH_RE.test(source);
+  const complex = source.length > 800 || COMPLEX_RE.test(source) || complexCoding || advancedMath;
+  const liteCandidate =
+    source.length <= 120 &&
+    !highStakes &&
+    !complex &&
+    !coding &&
+    !advancedMath &&
+    searchIntent === 'none' &&
+    (LITE_TASK_RE.test(source) || TIME_RE.test(source));
   return {
-    highStakes: HIGH_STAKES_RE.test(source),
-    complex: source.length > 260 || COMPLEX_RE.test(source) || CODING_RE.test(source),
-    coding: CODING_RE.test(source),
+    highStakes,
+    complex,
+    coding,
+    complexCoding,
+    advancedMath,
+    liteCandidate,
     needTime: TIME_RE.test(source),
     needGoldPrice: GOLD_RE.test(source),
     searchIntent,
@@ -254,8 +282,9 @@ function detectSignals(text) {
 }
 
 function resolveModelRoute(signals) {
-  const tier = signals.highStakes || signals.complex ? 'pro' : 'flash';
-  const model = tier === 'pro' ? DEEP_MODEL : FAST_MODEL;
+  const tier = signals.highStakes || signals.complex ? 'pro' : signals.liteCandidate ? 'lite' : 'balanced';
+  const model =
+    tier === 'pro' ? PRO_ROUTE_MODEL : tier === 'lite' ? LITE_ROUTE_MODEL : BALANCED_ROUTE_MODEL;
   return { tier, model };
 }
 
@@ -575,16 +604,56 @@ function buildSystemInstruction({ soulText, userProfile, runtimeContext, signals
   return [soulText, '', ...baseRules, '', ...profileLines, '', ...runtimeLines].filter(Boolean).join('\n');
 }
 
+function buildRouteTags(signals) {
+  return [
+    signals.highStakes ? 'high_stakes' : '',
+    signals.complex ? 'complex' : '',
+    signals.coding ? 'coding' : '',
+    signals.complexCoding ? 'complex_coding' : '',
+    signals.advancedMath ? 'advanced_math' : '',
+    signals.liteCandidate ? 'lite_candidate' : '',
+    signals.needRealtime ? 'realtime' : '',
+    signals.needGoldPrice ? 'gold' : '',
+    signals.needSearch ? 'search' : '',
+    signals.searchIntent !== 'none' ? `search_${signals.searchIntent}` : ''
+  ].filter(Boolean);
+}
+
 export const config = {
   maxDuration: 60
 };
 
 export default async function handler(req, res) {
+  const startedAt = Date.now();
+  const sessionId = resolveAuditSession(req, res);
+  let auditText = '';
+  let auditRouteTags = [];
+
   if (req.method !== 'POST') {
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'chat_request',
+        sessionId,
+        path: '/api/chat',
+        status: 405,
+        durationMs: Date.now() - startedAt,
+        errorType: 'method_not_allowed'
+      })
+    );
     return res.status(405).json({ error: { message: 'Method Not Allowed' } });
   }
 
   if (!OPENAI_API_KEY) {
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'chat_request',
+        sessionId,
+        path: '/api/chat',
+        status: 500,
+        durationMs: Date.now() - startedAt,
+        errorType: 'missing_api_key'
+      })
+    );
     return res.status(500).json({ error: { message: 'OPENAI_API_KEY is required' } });
   }
 
@@ -596,9 +665,11 @@ export default async function handler(req, res) {
     const bodyProfile = sanitizeProfile(payload?.userProfile);
     const userProfile = bodyProfile || cookieProfile;
     const text = getLatestUserText(payload, rawHistory);
+    auditText = text;
     const signals = detectSignals(text);
     const route = resolveModelRoute(signals);
     const model = route.model;
+    auditRouteTags = buildRouteTags(signals);
     const soulMode = resolveSoulMode(payload?.soulMode || cookies.soul_mode, signals.highStakes);
     const soulResult = readSoulText(soulMode);
     const soulText = soulResult.text;
@@ -652,20 +723,7 @@ export default async function handler(req, res) {
     if (runtimeDiagnostics.searchReason) res.setHeader('X-Route-Search-Reason', runtimeDiagnostics.searchReason);
     if (runtimeDiagnostics.searchEndpoint) res.setHeader('X-Route-Search-Endpoint', runtimeDiagnostics.searchEndpoint);
     if (runtimeDiagnostics.searchFreshness) res.setHeader('X-Route-Search-Freshness', runtimeDiagnostics.searchFreshness);
-    res.setHeader(
-      'X-Route-Tags',
-      [
-        signals.highStakes ? 'high_stakes' : '',
-        signals.complex ? 'complex' : '',
-        signals.coding ? 'coding' : '',
-        signals.needRealtime ? 'realtime' : '',
-        signals.needGoldPrice ? 'gold' : '',
-        signals.needSearch ? 'search' : '',
-        signals.searchIntent !== 'none' ? `search_${signals.searchIntent}` : ''
-      ]
-        .filter(Boolean)
-        .join(',')
-    );
+    res.setHeader('X-Route-Tags', auditRouteTags.join(','));
 
     const upstream = await fetch(url, {
       method: 'POST',
@@ -676,7 +734,20 @@ export default async function handler(req, res) {
     if (!upstream.ok || !upstream.body) {
       const txt = await upstream.text().catch(() => '');
       res.write(`data: ${JSON.stringify({ error: { status: upstream.status, body: txt } })}\n\n`);
-      return res.end();
+      res.end();
+      scheduleAuditLog(
+        buildAuditEvent(req, res, {
+          eventType: 'chat_request',
+          sessionId,
+          path: '/api/chat',
+          userText: auditText,
+          status: upstream.status || 502,
+          routeTags: auditRouteTags,
+          durationMs: Date.now() - startedAt,
+          errorType: 'upstream_error'
+        })
+      );
+      return;
     }
 
     const reader = upstream.body.getReader();
@@ -713,10 +784,35 @@ export default async function handler(req, res) {
     }
 
     res.write('data: [DONE]\n\n');
-    return res.end();
+    res.end();
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'chat_request',
+        sessionId,
+        path: '/api/chat',
+        userText: auditText,
+        status: 200,
+        routeTags: auditRouteTags,
+        durationMs: Date.now() - startedAt
+      })
+    );
+    return;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'proxy error';
     res.write(`data: ${JSON.stringify({ error: { message } })}\n\n`);
-    return res.end();
+    res.end();
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'chat_request',
+        sessionId,
+        path: '/api/chat',
+        userText: auditText,
+        status: 500,
+        routeTags: auditRouteTags,
+        durationMs: Date.now() - startedAt,
+        errorType: 'proxy_error'
+      })
+    );
+    return;
   }
 }

@@ -1,6 +1,6 @@
 # MiniChatV 关键参数手册
 
-更新时间：2026-05-10
+更新时间：2026-05-20
 
 ## 项目参数
 
@@ -11,7 +11,7 @@
 | 默认分支 | `main` |
 | Vercel 项目页 | `https://vercel.com/xts-projects-b1da549d/jscity-minichatv/` |
 | Vercel Project ID | `prj_KEnpLtnR9nc6NBMCSbFhOa2Q3Nph` |
-| 当前 app 版本 | `2.1.0` |
+| 当前 app 版本 | `V3` |
 | 前端框架 | `Vite + React` |
 | 后端形态 | `Vercel Serverless Functions` |
 
@@ -44,8 +44,11 @@ git push origin main
 | 变量 | 必填 | 当前默认值 | 说明 |
 | --- | --- | --- | --- |
 | `OPENAI_API_KEY` | 是 | 无 | 实际填写 Gemini API Key；历史变量名未改。 |
-| `QUICK_MODEL` | 否 | `gemini-3-flash-preview` | 快速模型。 |
-| `THINKING_MODEL` | 否 | `gemini-3.1-pro-preview` | 思考模型。Vercel 中若设置旧值会覆盖代码默认值。 |
+| `LITE_MODEL` | 否 | `gemini-3.1-flash-lite` | 极速模型；短问候、短翻译、简短改写、时间类轻量问题。 |
+| `BALANCED_MODEL` | 否 | `gemini-3.5-flash` | 默认全方位模型；普通问答、联网总结、一般代码。 |
+| `PRO_MODEL` | 否 | `gemini-3.1-pro-preview` | 深度模型；高等数学、复杂代码、高风险问题。 |
+| `QUICK_MODEL` | 否 | 无 | 旧配置兼容；未设置 `LITE_MODEL` 时作为极速模型。 |
+| `THINKING_MODEL` | 否 | 无 | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型。 |
 | `MODEL` | 否 | 无 | 兼容兜底模型变量。 |
 | `SYSTEM_PROMPT` | 否 | `You are a concise assistant.` | SOUL 文件加载失败时的兜底提示词之一。 |
 | `DEFAULT_SOUL_MODE` | 否 | `machine` | 默认灵魂模式。 |
@@ -61,8 +64,9 @@ git push origin main
 
 | 条件 | 路由 | 默认模型 |
 | --- | --- | --- |
-| 普通聊天、简单语言交流 | `flash` | `gemini-3-flash-preview` |
-| 长问题、架构、调试、根因分析、复杂推理 | `pro` | `gemini-3.1-pro-preview` |
+| 短问候、短翻译、简短改写、时间类轻量问题 | `lite` | `gemini-3.1-flash-lite` |
+| 普通问答、联网总结、一般代码、默认聊天 | `balanced` | `gemini-3.5-flash` |
+| 高等数学、长问题、架构、调试、根因分析、复杂代码 | `pro` | `gemini-3.1-pro-preview` |
 | 医疗、金融、法律、税务、合规等高风险领域 | `pro` | `gemini-3.1-pro-preview` |
 
 高风险领域会自动把 `savage` / `sharp` SOUL 降级到 `pro`，避免过度毒舌或个性化影响严肃建议。
@@ -104,7 +108,7 @@ git push origin main
 | 前端 `NOT_FOUND` | `vercel.json` rewrites、Vercel output directory 是否为 `dist`。 |
 | `/api/chat` GET 404 | 正常；聊天接口应由前端 `POST` 调用。 |
 | 聊天无响应 | Vercel env 是否存在 `OPENAI_API_KEY`，函数日志是否有 Gemini API 错误。 |
-| 模型仍走旧 Pro | Vercel env 是否残留 `THINKING_MODEL=gemini-3-pro-preview`。 |
+| 模型仍走旧 Pro | Vercel env 是否残留旧 `PRO_MODEL` / `THINKING_MODEL`。 |
 | SOUL 不生效 | 检查 `api/chat.js` 是否读取 `soulMode`，`vercel.json` 是否 include `SOUL*.md`。 |
 | 登录密码不生效 | 检查 `PASSCODE.md` 是否被 include，前端 cookie 是否缓存旧登录状态。 |
 | GitHub / Vercel check 失败作者邮箱 | 检查 `git config user.email` 是否匹配 GitHub 账号邮箱。 |

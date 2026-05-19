@@ -30,8 +30,8 @@ const PROFILE_COOKIE = 'mini_pref';
 const UNLOCK_COOKIE = 'terminal_unlock';
 const DEFAULT_SOUL_MODE: SoulMode = 'machine';
 const DEFAULT_THEME_MODE: ThemeMode = 'terminal';
-const APP_VERSION = import.meta.env.VITE_APP_VERSION || '2.1.0';
-const DISPLAY_VERSION = `v${APP_VERSION}`;
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '3';
+const DISPLAY_VERSION = APP_VERSION.toUpperCase().startsWith('V') ? APP_VERSION.toUpperCase() : `V${APP_VERSION}`;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
 const DEFAULT_PROFILE: UserProfile = {
   topicPreference: 'general',

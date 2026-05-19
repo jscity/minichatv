@@ -4,7 +4,7 @@
 
 ## 功能概览
 
-- ⚡️ `/api/chat` 支持流式响应，按问题类型自动路由到快模型或思考模型。
+- ⚡️ `/api/chat` 支持流式响应，按问题类型自动路由到极速、全方位或深度思考模型。
 - 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、Brave 在线搜索快照。
 - 🧠 轻量偏好记忆（cookie）：按话题/语气/受众模式进行回答风格微调；代码类问题只作为当前路由信号，不写入长期身份偏好。
 - 🎭 默认机器灵魂 + 四个可选灵魂：默认绿色 `Machine` 不出现在菜单中；菜单提供 `Gentle`、`Pro`、`Sharp`、`Savage`。高风险问题会自动回退到更稳健风格。
@@ -69,10 +69,15 @@ Install Command: npm install
 ```bash
 OPENAI_API_KEY=你的真实密钥
 BRAVE_SEARCH_API_KEY=你的 Brave Search API 密钥   # 可选；启用在线搜索
-QUICK_MODEL=gemini-3-flash-preview     # 可选
-THINKING_MODEL=gemini-3.1-pro-preview    # 可选
+LITE_MODEL=gemini-3.1-flash-lite       # 可选；极速回答
+BALANCED_MODEL=gemini-3.5-flash        # 可选；默认全方位模型
+PRO_MODEL=gemini-3.1-pro-preview       # 可选；高等数学、复杂代码、高风险问题
 DEFAULT_SOUL_MODE=machine              # 可选: machine/gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
+AUDIT_LOG_ENDPOINT=https://audit.xtvv.com/ingest   # 可选；启用访问审计
+AUDIT_LOG_TOKEN=你的审计服务 Bearer token          # 可选；与 rack241 保持一致
+AUDIT_LOG_INCLUDE_USER_TEXT=true                  # 可选；记录用户输入，不记录模型回复
+AUDIT_LOG_TIMEOUT_MS=800                          # 可选；审计投递超时
 ```
 
 ## 环境变量
@@ -81,11 +86,19 @@ SYSTEM_PROMPT=You are a concise assistant.   # 可选
 | --- | --- | --- |
 | `OPENAI_API_KEY` | 必填，上游模型服务的密钥 | 无 |
 | `BRAVE_SEARCH_API_KEY` | 可选，Brave Search API 密钥；用于新闻、吃瓜、游戏实时/攻略搜索 | 空 |
-| `QUICK_MODEL` | 快速模型（普通问题） | `gemini-3-flash-preview` |
-| `THINKING_MODEL` | 思考模型（高风险/复杂问题） | `gemini-3.1-pro-preview` |
+| `LITE_MODEL` | 极速模型（短问候、短翻译、简短改写、时间类轻量问题） | `gemini-3.1-flash-lite` |
+| `BALANCED_MODEL` | 默认全方位模型（普通问答、联网总结、一般代码） | `gemini-3.5-flash` |
+| `PRO_MODEL` | 深度模型（高等数学、复杂代码、高风险问题） | `gemini-3.1-pro-preview` |
+| `QUICK_MODEL` | 旧配置兼容；未设置 `LITE_MODEL` 时作为极速模型 | 空 |
+| `THINKING_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型 | 空 |
 | `MODEL` | 全局兜底模型（兼容旧配置） | 空 |
 | `DEFAULT_SOUL_MODE` | 默认灵魂模式 | `machine` |
 | `SYSTEM_PROMPT` | 系统提示词 | `You are a concise assistant.` |
+| `AUDIT_LOG_ENDPOINT` | 可选，审计日志投递地址；设置后 `/api/chat` 与 `/api/unlock` 会异步投递访问元数据 | 空 |
+| `AUDIT_LOG_TOKEN` | 可选，审计日志 Bearer token；必须与日志服务一致 | 空 |
+| `AUDIT_LOG_INCLUDE_USER_TEXT` | 是否记录用户输入；不会记录模型回复或解锁密码 | `true` |
+| `AUDIT_LOG_TIMEOUT_MS` | 审计投递超时时间，失败只写运行日志，不影响聊天 | `800` |
+| `AUDIT_IP_HASH_SALT` | 可选，IP 哈希盐；默认使用审计 token | `AUDIT_LOG_TOKEN` |
 | `PORT` | 服务监听端口 | `8787` |
 
 其余配置沿用旧项目逻辑，如需扩展可直接修改 `server.js`。
@@ -98,6 +111,7 @@ mini-chat-figma-app/
 ├── docker-compose.yml
 ├── vercel.json
 ├── api/
+│   ├── audit.js            # 访问审计异步投递工具
 │   ├── chat.js             # Vercel Serverless API
 │   └── unlock.js           # Passcode verify API
 ├── PASSCODE.md             # 登录口令（默认 8086）

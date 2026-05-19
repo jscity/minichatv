@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildAuditEvent, resolveAuditSession, scheduleAuditLog } from './audit.js';
 
 const API_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(API_DIR, '..');
@@ -52,7 +53,20 @@ function readPasscode() {
 }
 
 export default async function handler(req, res) {
+  const startedAt = Date.now();
+  const sessionId = resolveAuditSession(req, res);
+
   if (req.method !== 'POST') {
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'unlock_request',
+        sessionId,
+        path: '/api/unlock',
+        status: 405,
+        durationMs: Date.now() - startedAt,
+        errorType: 'method_not_allowed'
+      })
+    );
     return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
   }
 
@@ -61,8 +75,27 @@ export default async function handler(req, res) {
   const expected = readPasscode();
 
   if (!submitted || submitted !== expected) {
+    scheduleAuditLog(
+      buildAuditEvent(req, res, {
+        eventType: 'unlock_failed',
+        sessionId,
+        path: '/api/unlock',
+        status: 401,
+        durationMs: Date.now() - startedAt,
+        errorType: 'invalid_passcode'
+      })
+    );
     return res.status(401).json({ ok: false, error: 'Invalid passcode' });
   }
 
+  scheduleAuditLog(
+    buildAuditEvent(req, res, {
+      eventType: 'unlock_success',
+      sessionId,
+      path: '/api/unlock',
+      status: 200,
+      durationMs: Date.now() - startedAt
+    })
+  );
   return res.status(200).json({ ok: true });
 }
