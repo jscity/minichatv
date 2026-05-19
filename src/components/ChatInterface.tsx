@@ -348,11 +348,19 @@ export function ChatInterface() {
   }, [soulMode]);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.body.dataset.theme = themeMode;
+
     if (themeMode === DEFAULT_THEME_MODE) {
       deleteCookie(THEME_COOKIE);
-      return;
+    } else {
+      writeCookie(THEME_COOKIE, themeMode, 365);
     }
-    writeCookie(THEME_COOKIE, themeMode, 365);
+
+    return () => {
+      delete document.documentElement.dataset.theme;
+      delete document.body.dataset.theme;
+    };
   }, [themeMode]);
 
   useEffect(() => {
