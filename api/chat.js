@@ -5,7 +5,7 @@ import { buildAuditEvent, resolveAuditSession, scheduleAuditLog } from './audit.
 
 const {
   MODEL,
-  LITE_MODEL,
+  FAST_MODEL,
   BALANCED_MODEL,
   PRO_MODEL,
   QUICK_MODEL,
@@ -18,9 +18,8 @@ const {
 
 const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const firstConfigured = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim();
-const LITE_ROUTE_MODEL = firstConfigured(LITE_MODEL, QUICK_MODEL, MODEL) || 'gemini-3.1-flash-lite';
-const BALANCED_ROUTE_MODEL = firstConfigured(BALANCED_MODEL, MODEL) || 'gemini-3.5-flash';
-const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, MODEL) || 'gemini-3.1-pro-preview';
+const FAST_ROUTE_MODEL = firstConfigured(FAST_MODEL, QUICK_MODEL) || 'gemini-3.5-flash';
+const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, BALANCED_MODEL, MODEL) || 'gemini-3.1-pro-preview';
 const VALID_SOUL_MODES = new Set(['machine', 'gentle', 'pro', 'sharp', 'savage']);
 const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
@@ -258,7 +257,7 @@ function detectSignals(text) {
   const complexCoding = coding && COMPLEX_CODING_RE.test(source);
   const advancedMath = ADVANCED_MATH_RE.test(source);
   const complex = source.length > 800 || COMPLEX_RE.test(source) || complexCoding || advancedMath;
-  const liteCandidate =
+  const fastCandidate =
     source.length <= 120 &&
     !highStakes &&
     !complex &&
@@ -272,7 +271,7 @@ function detectSignals(text) {
     coding,
     complexCoding,
     advancedMath,
-    liteCandidate,
+    fastCandidate,
     needTime: TIME_RE.test(source),
     needGoldPrice: GOLD_RE.test(source),
     searchIntent,
@@ -282,9 +281,8 @@ function detectSignals(text) {
 }
 
 function resolveModelRoute(signals) {
-  const tier = signals.highStakes || signals.complex ? 'pro' : signals.liteCandidate ? 'lite' : 'balanced';
-  const model =
-    tier === 'pro' ? PRO_ROUTE_MODEL : tier === 'lite' ? LITE_ROUTE_MODEL : BALANCED_ROUTE_MODEL;
+  const tier = signals.fastCandidate ? 'fast' : 'pro';
+  const model = tier === 'fast' ? FAST_ROUTE_MODEL : PRO_ROUTE_MODEL;
   return { tier, model };
 }
 
@@ -611,7 +609,7 @@ function buildRouteTags(signals) {
     signals.coding ? 'coding' : '',
     signals.complexCoding ? 'complex_coding' : '',
     signals.advancedMath ? 'advanced_math' : '',
-    signals.liteCandidate ? 'lite_candidate' : '',
+    signals.fastCandidate ? 'fast_candidate' : '',
     signals.needRealtime ? 'realtime' : '',
     signals.needGoldPrice ? 'gold' : '',
     signals.needSearch ? 'search' : '',

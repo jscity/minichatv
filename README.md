@@ -4,7 +4,7 @@
 
 ## 功能概览
 
-- ⚡️ `/api/chat` 支持流式响应，按问题类型自动路由到极速、全方位或深度思考模型。
+- ⚡️ `/api/chat` 支持流式响应，短轻任务走快速模型，其余默认走深度模型。
 - 🛰️ 支持按需实时上下文：当前时间（用户时区）、黄金期货快照、Brave 在线搜索快照。
 - 🧠 轻量偏好记忆（cookie）：按话题/语气/受众模式进行回答风格微调；代码类问题只作为当前路由信号，不写入长期身份偏好。
 - 🎭 默认机器灵魂 + 四个可选灵魂：默认绿色 `Machine` 不出现在菜单中；菜单提供 `Gentle`、`Pro`、`Sharp`、`Savage`。高风险问题会自动回退到更稳健风格。
@@ -69,9 +69,8 @@ Install Command: npm install
 ```bash
 OPENAI_API_KEY=你的真实密钥
 BRAVE_SEARCH_API_KEY=你的 Brave Search API 密钥   # 可选；启用在线搜索
-LITE_MODEL=gemini-3.1-flash-lite       # 可选；极速回答
-BALANCED_MODEL=gemini-3.5-flash        # 可选；默认全方位模型
-PRO_MODEL=gemini-3.1-pro-preview       # 可选；高等数学、复杂代码、高风险问题
+FAST_MODEL=gemini-3.5-flash            # 可选；最低档快速模型
+PRO_MODEL=gemini-3.1-pro-preview       # 可选；默认深度模型
 DEFAULT_SOUL_MODE=machine              # 可选: machine/gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
 AUDIT_LOG_ENDPOINT=https://audit.xtvv.com/ingest   # 可选；启用访问审计
@@ -86,11 +85,12 @@ AUDIT_LOG_TIMEOUT_MS=800                          # 可选；审计投递超时
 | --- | --- | --- |
 | `OPENAI_API_KEY` | 必填，上游模型服务的密钥 | 无 |
 | `BRAVE_SEARCH_API_KEY` | 可选，Brave Search API 密钥；用于新闻、吃瓜、游戏实时/攻略搜索 | 空 |
-| `LITE_MODEL` | 极速模型（短问候、短翻译、简短改写、时间类轻量问题） | `gemini-3.1-flash-lite` |
-| `BALANCED_MODEL` | 默认全方位模型（普通问答、联网总结、一般代码） | `gemini-3.5-flash` |
-| `PRO_MODEL` | 深度模型（高等数学、复杂代码、高风险问题） | `gemini-3.1-pro-preview` |
-| `QUICK_MODEL` | 旧配置兼容；未设置 `LITE_MODEL` 时作为极速模型 | 空 |
+| `FAST_MODEL` | 最低档快速模型（短问候、短翻译、简短改写、时间类轻量问题） | `gemini-3.5-flash` |
+| `PRO_MODEL` | 默认深度模型（普通问答、代码、分析、数学、高风险问题） | `gemini-3.1-pro-preview` |
+| `QUICK_MODEL` | 旧配置兼容；未设置 `FAST_MODEL` 时作为快速模型 | 空 |
 | `THINKING_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型 | 空 |
+| `BALANCED_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` / `THINKING_MODEL` 时作为深度模型 | 空 |
+| `LITE_MODEL` | 旧配置残留；当前代码不再读取 | 空 |
 | `MODEL` | 全局兜底模型（兼容旧配置） | 空 |
 | `DEFAULT_SOUL_MODE` | 默认灵魂模式 | `machine` |
 | `SYSTEM_PROMPT` | 系统提示词 | `You are a concise assistant.` |

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.0.1 - 2026-05-21
+- Removed Flash-Lite from active routing.
+- Collapsed model routing to `fast` (`gemini-3.5-flash`) and `pro` (`gemini-3.1-pro-preview`).
+- Routed former balanced/default requests to Pro; only lightweight short tasks stay on Fast.
+
 ## 3.0.0 - 2026-05-20
 - Added three-tier Gemini routing: `lite`, `balanced`, and `pro`.
 - Updated defaults to `gemini-3.1-flash-lite`, `gemini-3.5-flash`, and `gemini-3.1-pro-preview`.

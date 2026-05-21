@@ -44,11 +44,12 @@ git push origin main
 | 变量 | 必填 | 当前默认值 | 说明 |
 | --- | --- | --- | --- |
 | `OPENAI_API_KEY` | 是 | 无 | 实际填写 Gemini API Key；历史变量名未改。 |
-| `LITE_MODEL` | 否 | `gemini-3.1-flash-lite` | 极速模型；短问候、短翻译、简短改写、时间类轻量问题。 |
-| `BALANCED_MODEL` | 否 | `gemini-3.5-flash` | 默认全方位模型；普通问答、联网总结、一般代码。 |
-| `PRO_MODEL` | 否 | `gemini-3.1-pro-preview` | 深度模型；高等数学、复杂代码、高风险问题。 |
-| `QUICK_MODEL` | 否 | 无 | 旧配置兼容；未设置 `LITE_MODEL` 时作为极速模型。 |
+| `FAST_MODEL` | 否 | `gemini-3.5-flash` | 最低档快速模型；短问候、短翻译、简短改写、时间类轻量问题。 |
+| `PRO_MODEL` | 否 | `gemini-3.1-pro-preview` | 默认深度模型；普通问答、代码、分析、数学、高风险问题。 |
+| `QUICK_MODEL` | 否 | 无 | 旧配置兼容；未设置 `FAST_MODEL` 时作为快速模型。 |
 | `THINKING_MODEL` | 否 | 无 | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型。 |
+| `BALANCED_MODEL` | 否 | 无 | 旧配置兼容；未设置 `PRO_MODEL` / `THINKING_MODEL` 时作为深度模型。 |
+| `LITE_MODEL` | 否 | 无 | 旧配置残留；当前代码不再读取。 |
 | `MODEL` | 否 | 无 | 兼容兜底模型变量。 |
 | `SYSTEM_PROMPT` | 否 | `You are a concise assistant.` | SOUL 文件加载失败时的兜底提示词之一。 |
 | `DEFAULT_SOUL_MODE` | 否 | `machine` | 默认灵魂模式。 |
@@ -64,8 +65,8 @@ git push origin main
 
 | 条件 | 路由 | 默认模型 |
 | --- | --- | --- |
-| 短问候、短翻译、简短改写、时间类轻量问题 | `lite` | `gemini-3.1-flash-lite` |
-| 普通问答、联网总结、一般代码、默认聊天 | `balanced` | `gemini-3.5-flash` |
+| 短问候、短翻译、简短改写、时间类轻量问题 | `fast` | `gemini-3.5-flash` |
+| 普通问答、联网总结、代码、分析、默认聊天 | `pro` | `gemini-3.1-pro-preview` |
 | 高等数学、长问题、架构、调试、根因分析、复杂代码 | `pro` | `gemini-3.1-pro-preview` |
 | 医疗、金融、法律、税务、合规等高风险领域 | `pro` | `gemini-3.1-pro-preview` |
 
