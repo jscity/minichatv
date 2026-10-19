@@ -43,9 +43,10 @@ git push origin main
 
 | 变量 | 必填 | 当前默认值 | 说明 |
 | --- | --- | --- | --- |
-| `OPENAI_API_KEY` | 是 | 无 | 实际填写 Gemini API Key；历史变量名未改。 |
-| `FAST_MODEL` | 否 | `gemini-3.5-flash` | 最低档快速模型；短问候、短翻译、简短改写、时间类轻量问题。 |
-| `PRO_MODEL` | 否 | `gemini-3.1-pro-preview` | 默认深度模型；普通问答、代码、分析、数学、高风险问题。 |
+| `DEEPSEEK_API_KEY` | 是 | 无 | DeepSeek API Key。 |
+| `DEEPSEEK_BASE_URL` | 否 | `https://api.deepseek.com` | DeepSeek（OpenAI 兼容）接口地址。 |
+| `FAST_MODEL` | 否 | `deepseek-flash` | 快速路由模型（关闭思考模式）；短问候、短翻译、简短改写、时间类轻量问题。 |
+| `PRO_MODEL` | 否 | `deepseek-flash` | 默认路由模型（开启思考模式）；普通问答、代码、分析、数学、高风险问题。 |
 | `QUICK_MODEL` | 否 | 无 | 旧配置兼容；未设置 `FAST_MODEL` 时作为快速模型。 |
 | `THINKING_MODEL` | 否 | 无 | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型。 |
 | `BALANCED_MODEL` | 否 | 无 | 旧配置兼容；未设置 `PRO_MODEL` / `THINKING_MODEL` 时作为深度模型。 |
@@ -65,10 +66,10 @@ git push origin main
 
 | 条件 | 路由 | 默认模型 |
 | --- | --- | --- |
-| 短问候、短翻译、简短改写、时间类轻量问题 | `fast` | `gemini-3.5-flash` |
-| 普通问答、联网总结、代码、分析、默认聊天 | `pro` | `gemini-3.1-pro-preview` |
-| 高等数学、长问题、架构、调试、根因分析、复杂代码 | `pro` | `gemini-3.1-pro-preview` |
-| 医疗、金融、法律、税务、合规等高风险领域 | `pro` | `gemini-3.1-pro-preview` |
+| 短问候、短翻译、简短改写、时间类轻量问题 | `fast` | `deepseek-flash`（非思考） |
+| 普通问答、联网总结、代码、分析、默认聊天 | `pro` | `deepseek-flash`（思考） |
+| 高等数学、长问题、架构、调试、根因分析、复杂代码 | `pro` | `deepseek-flash`（思考） |
+| 医疗、金融、法律、税务、合规等高风险领域 | `pro` | `deepseek-flash`（思考） |
 
 高风险领域会自动把 `savage` / `sharp` SOUL 降级到 `pro`，避免过度毒舌或个性化影响严肃建议。
 
@@ -94,7 +95,7 @@ git push origin main
 
 | 文件 | 作用 |
 | --- | --- |
-| `api/chat.js` | Gemini 转发、流式响应、模型路由、实时上下文、SOUL 注入。 |
+| `api/chat.js` | DeepSeek 转发、流式响应、模型路由、实时上下文、SOUL 注入。 |
 | `api/unlock.js` | 密码校验。 |
 | `src/components/ChatInterface.tsx` | 主聊天 UI、登录界面、SOUL 弹窗、cookie 偏好、Markdown 渲染。 |
 | `src/styles/globals.css` | 复古终端视觉、移动端布局、全屏阅读模式。 |
@@ -108,8 +109,8 @@ git push origin main
 | --- | --- |
 | 前端 `NOT_FOUND` | `vercel.json` rewrites、Vercel output directory 是否为 `dist`。 |
 | `/api/chat` GET 404 | 正常；聊天接口应由前端 `POST` 调用。 |
-| 聊天无响应 | Vercel env 是否存在 `OPENAI_API_KEY`，函数日志是否有 Gemini API 错误。 |
-| 模型仍走旧 Pro | Vercel env 是否残留旧 `PRO_MODEL` / `THINKING_MODEL`。 |
+| 聊天无响应 | Vercel env 是否存在 `DEEPSEEK_API_KEY`，函数日志是否有 DeepSeek API 错误。 |
+| 模型仍走旧 Gemini | Vercel env 是否残留 `gemini-*` 的 `FAST_MODEL` / `PRO_MODEL` / `THINKING_MODEL`。 |
 | SOUL 不生效 | 检查 `api/chat.js` 是否读取 `soulMode`，`vercel.json` 是否 include `SOUL*.md`。 |
 | 登录密码不生效 | 检查 `PASSCODE.md` 是否被 include，前端 cookie 是否缓存旧登录状态。 |
 | GitHub / Vercel check 失败作者邮箱 | 检查 `git config user.email` 是否匹配 GitHub 账号邮箱。 |

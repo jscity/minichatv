@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 import chatHandler from './api/chat.js';
 import unlockHandler from './api/unlock.js';
 
-const { PORT = 8787, OPENAI_API_KEY } = process.env;
+const { PORT = 8787, DEEPSEEK_API_KEY } = process.env;
 
-if (!OPENAI_API_KEY) {
-  console.error('[FATAL] OPENAI_API_KEY is required.');
+if (!DEEPSEEK_API_KEY) {
+  console.error('[FATAL] DEEPSEEK_API_KEY is required.');
   process.exit(1);
 }
 

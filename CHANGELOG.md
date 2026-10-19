@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.1.0 - 2026-10-19
+- Switched the upstream provider from Gemini to DeepSeek's OpenAI-compatible API (`https://api.deepseek.com`).
+- Defaulted both `fast` and `pro` routes to `deepseek-flash` (DeepSeek V4.1 Flash); `fast` disables thinking mode, `pro` enables it. Reasoning content is not forwarded to the client.
+- Replaced `OPENAI_API_KEY` with `DEEPSEEK_API_KEY`; added optional `DEEPSEEK_BASE_URL`.
+- Added a prominent sunset notice to the unlock screen and chat page: the project goes offline on 2027-01-17; users are pointed to Doubao or DeepSeek.
+
 ## 3.0.1 - 2026-05-21
 - Removed Flash-Lite from active routing.
 - Collapsed model routing to `fast` (`gemini-3.5-flash`) and `pro` (`gemini-3.1-pro-preview`).

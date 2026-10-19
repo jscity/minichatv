@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Send, MoreHorizontal, Maximize2, Minimize2, BookOpen } from 'lucide-react';
+import { Plus, Send, MoreHorizontal, Maximize2, Minimize2, BookOpen, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -33,6 +33,12 @@ const DEFAULT_THEME_MODE: ThemeMode = 'terminal';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '3';
 const DISPLAY_VERSION = APP_VERSION.toUpperCase().startsWith('V') ? APP_VERSION.toUpperCase() : `V${APP_VERSION}`;
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 768px)';
+const SUNSET_DATE = '2027-01-17';
+const SUNSET_TIME = Date.parse(`${SUNSET_DATE}T00:00:00+08:00`);
+const ALTERNATIVE_SERVICES = [
+  { label: '豆包', href: 'https://www.doubao.com/chat/' },
+  { label: 'DeepSeek', href: 'https://chat.deepseek.com/' }
+];
 const DEFAULT_PROFILE: UserProfile = {
   topicPreference: 'general',
   tonePreference: 'balanced',
@@ -237,6 +243,36 @@ const getClientTimeZone = () => {
 
 const isMobileViewport = () =>
   typeof window !== 'undefined' && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+
+const getDaysUntilSunset = () => Math.max(0, Math.ceil((SUNSET_TIME - Date.now()) / (24 * 60 * 60 * 1000)));
+
+function SunsetNotice({ className = '' }: { className?: string }) {
+  const daysLeft = getDaysUntilSunset();
+
+  return (
+    <div className={`sunset-notice${className ? ` ${className}` : ''}`} role="note">
+      <AlertTriangle size={16} className="sunset-notice-icon" aria-hidden="true" />
+      <span className="sunset-notice-text">
+        {daysLeft > 0 ? (
+          <>
+            本项目将于 <strong>{SUNSET_DATE}</strong> 下线（剩余 <strong>{daysLeft}</strong> 天），请改用{' '}
+          </>
+        ) : (
+          <>本项目已下线，请改用 </>
+        )}
+        {ALTERNATIVE_SERVICES.map((service, idx) => (
+          <React.Fragment key={service.label}>
+            {idx > 0 && ' 或 '}
+            <a href={service.href} target="_blank" rel="noopener noreferrer">
+              {service.label}
+            </a>
+          </React.Fragment>
+        ))}
+        。
+      </span>
+    </div>
+  );
+}
 
 export function ChatInterface() {
   const [isUnlocked, setIsUnlocked] = useState(() => readCookie(UNLOCK_COOKIE) === '1');
@@ -580,6 +616,7 @@ export function ChatInterface() {
     return (
       <div className="retro-terminal lock-shell">
         <div className="lock-screen">
+          <SunsetNotice className="lock-sunset-notice" />
           {isMobileDevice ? (
             <div className="mobile-lock-panel">
               <div className="lock-title">SECURE TERMINAL</div>
@@ -676,6 +713,7 @@ export function ChatInterface() {
       )}
 
       <div className="chat-container">
+        <SunsetNotice className="chat-sunset-notice" />
         <div className="chat-messages">
           <div className="top-left-controls">
             <button

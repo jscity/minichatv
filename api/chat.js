@@ -11,15 +11,18 @@ const {
   QUICK_MODEL,
   THINKING_MODEL,
   SYSTEM_PROMPT = 'You are a concise assistant.',
-  OPENAI_API_KEY,
+  DEEPSEEK_API_KEY,
+  DEEPSEEK_BASE_URL,
   BRAVE_SEARCH_API_KEY,
   DEFAULT_SOUL_MODE = 'machine'
 } = process.env;
 
-const OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com';
 const firstConfigured = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim();
-const FAST_ROUTE_MODEL = firstConfigured(FAST_MODEL, QUICK_MODEL) || 'gemini-3.5-flash';
-const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, BALANCED_MODEL, MODEL) || 'gemini-3.1-pro-preview';
+const UPSTREAM_BASE_URL = (firstConfigured(DEEPSEEK_BASE_URL) || 'https://api.deepseek.com').replace(/\/+$/, '');
+// `deepseek-flash` is DeepSeek's official alias for the latest Flash model (currently V4.1 Flash).
+const DEFAULT_MODEL = 'deepseek-flash';
+const FAST_ROUTE_MODEL = firstConfigured(FAST_MODEL, QUICK_MODEL) || DEFAULT_MODEL;
+const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, BALANCED_MODEL, MODEL) || DEFAULT_MODEL;
 const VALID_SOUL_MODES = new Set(['machine', 'gentle', 'pro', 'sharp', 'savage']);
 const VALID_TOPICS = new Set(['general', 'emotion', 'game', 'medical', 'elder', 'kids']);
 const VALID_TONES = new Set(['balanced', 'warm', 'direct', 'professional']);
@@ -641,7 +644,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: { message: 'Method Not Allowed' } });
   }
 
-  if (!OPENAI_API_KEY) {
+  if (!DEEPSEEK_API_KEY) {
     scheduleAuditLog(
       buildAuditEvent(req, res, {
         eventType: 'chat_request',
@@ -652,7 +655,7 @@ export default async function handler(req, res) {
         errorType: 'missing_api_key'
       })
     );
-    return res.status(500).json({ error: { message: 'OPENAI_API_KEY is required' } });
+    return res.status(500).json({ error: { message: 'DEEPSEEK_API_KEY is required' } });
   }
 
   try {
@@ -686,29 +689,31 @@ export default async function handler(req, res) {
       signals
     });
 
-    const contents = rawHistory.map((msg) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content || '' }]
-    }));
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...rawHistory.map((msg) => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content || ''
+      }))
+    ];
 
     if (typeof payload?.text === 'string' && payload.text.trim()) {
-      const last = contents[contents.length - 1];
-      const lastText = last?.parts?.[0]?.text || '';
+      const last = messages[messages.length - 1];
+      const lastText = last?.role === 'user' ? last.content : '';
       if (lastText !== payload.text) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: payload.text }]
-        });
+        messages.push({ role: 'user', content: payload.text });
       }
     }
 
     const body = {
-      contents,
-      systemInstruction: { parts: [{ text: systemPrompt }] }
+      model,
+      messages,
+      stream: true,
+      // Fast route skips chain-of-thought for latency; Pro route keeps DeepSeek thinking mode on.
+      thinking: { type: route.tier === 'fast' ? 'disabled' : 'enabled' }
     };
 
-    const apiPath = `/v1beta/models/${model}:streamGenerateContent`;
-    const url = `${OPENAI_BASE_URL}${apiPath}?key=${OPENAI_API_KEY}&alt=sse`;
+    const url = `${UPSTREAM_BASE_URL}/chat/completions`;
 
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -725,7 +730,10 @@ export default async function handler(req, res) {
 
     const upstream = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`
+      },
       body: JSON.stringify(body)
     });
 
@@ -761,10 +769,13 @@ export default async function handler(req, res) {
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
         try {
-          const geminiChunk = JSON.parse(line.substring(6));
-          const text = geminiChunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const upstreamChunk = JSON.parse(data);
+          // Only forward the final answer; `reasoning_content` (thinking) is not shown to users.
+          const text = upstreamChunk?.choices?.[0]?.delta?.content;
           if (!text) continue;
 
           const openAiChunk = {

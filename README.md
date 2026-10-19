@@ -10,6 +10,7 @@
 - 🎭 默认机器灵魂 + 四个可选灵魂：默认绿色 `Machine` 不出现在菜单中；菜单提供 `Gentle`、`Pro`、`Sharp`、`Savage`。高风险问题会自动回退到更稳健风格。
 - 🔐 首次访问需要输入密码（来自 `PASSCODE.md`），通过后写入 cookie，cookie 有效期内免重复输入。
 - 📝 支持 Markdown 渲染，列表、强调、代码块不再显示原始符号。
+- ⚠️ 打开页（解锁界面）与对话页顶部显示下线提醒：本项目将于 2027-01-17 下线，请改用豆包或 DeepSeek。
 - 🖥️ 复古终端风格界面，自动滚动、输入框高度自适应、打字中提示等交互。
 - 🧱 React + Vite 前端构建，产物由 Express 静态托管。
 - 🐳 提供 Dockerfile 与 docker-compose.yml，支持环境变量配置。
@@ -23,8 +24,8 @@ npm install
 # 启动前端开发服务器（默认代理到 8787）
 npm run dev
 
-# 另开终端启动后端代理（需要 OPENAI_API_KEY；在线搜索需要 BRAVE_SEARCH_API_KEY）
-OPENAI_API_KEY=... npm run start
+# 另开终端启动后端代理（需要 DEEPSEEK_API_KEY；在线搜索需要 BRAVE_SEARCH_API_KEY）
+DEEPSEEK_API_KEY=... npm run start
 ```
 
 在开发时可使用 `.env` 文件存储密钥，或直接在命令行导出环境变量。
@@ -40,7 +41,7 @@ npm run start
 
 ## Docker 部署
 
-1. 复制 `.env.example` 为 `.env`，填写真实的 `OPENAI_API_KEY` 及其他配置。
+1. 复制 `.env.example` 为 `.env`，填写真实的 `DEEPSEEK_API_KEY` 及其他配置。
 2. 构建并启动容器：
 
    ```bash
@@ -67,10 +68,10 @@ Install Command: npm install
 并在 Vercel 环境变量中至少设置：
 
 ```bash
-OPENAI_API_KEY=你的真实密钥
+DEEPSEEK_API_KEY=你的 DeepSeek API 密钥
 BRAVE_SEARCH_API_KEY=你的 Brave Search API 密钥   # 可选；启用在线搜索
-FAST_MODEL=gemini-3.5-flash            # 可选；最低档快速模型
-PRO_MODEL=gemini-3.1-pro-preview       # 可选；默认深度模型
+FAST_MODEL=deepseek-flash              # 可选；快速路由（关闭思考模式）
+PRO_MODEL=deepseek-flash               # 可选；默认路由（开启思考模式）
 DEFAULT_SOUL_MODE=machine              # 可选: machine/gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
 AUDIT_LOG_ENDPOINT=https://audit.xtvv.com/ingest   # 可选；启用访问审计
@@ -83,10 +84,11 @@ AUDIT_LOG_TIMEOUT_MS=800                          # 可选；审计投递超时
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | 必填，上游模型服务的密钥 | 无 |
+| `DEEPSEEK_API_KEY` | 必填，DeepSeek API 密钥 | 无 |
+| `DEEPSEEK_BASE_URL` | 可选，DeepSeek（OpenAI 兼容）接口地址 | `https://api.deepseek.com` |
 | `BRAVE_SEARCH_API_KEY` | 可选，Brave Search API 密钥；用于新闻、吃瓜、游戏实时/攻略搜索 | 空 |
-| `FAST_MODEL` | 最低档快速模型（短问候、短翻译、简短改写、时间类轻量问题） | `gemini-3.5-flash` |
-| `PRO_MODEL` | 默认深度模型（普通问答、代码、分析、数学、高风险问题） | `gemini-3.1-pro-preview` |
+| `FAST_MODEL` | 快速路由模型（短问候、短翻译、简短改写、时间类轻量问题；关闭思考模式） | `deepseek-flash` |
+| `PRO_MODEL` | 默认路由模型（普通问答、代码、分析、数学、高风险问题；开启思考模式） | `deepseek-flash` |
 | `QUICK_MODEL` | 旧配置兼容；未设置 `FAST_MODEL` 时作为快速模型 | 空 |
 | `THINKING_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型 | 空 |
 | `BALANCED_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` / `THINKING_MODEL` 时作为深度模型 | 空 |
