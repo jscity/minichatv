@@ -4,7 +4,7 @@
 
 ## 项目定位
 
-MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前端使用 Vite + React，后端使用 Vercel Serverless Function 转发 DeepSeek API（OpenAI 兼容接口）。
+MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前端使用 Vite + React，后端使用 Vercel Serverless Function 经 OpenRouter 转发 DeepSeek 模型（OpenAI 兼容接口）。
 
 当前仓库：
 
@@ -18,7 +18,7 @@ MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前�
 - Vercel 部署结构已修正为 Vite 静态输出 + `/api/*` Serverless Function。
 - `/api/chat` 只应使用 `POST` 调用；浏览器直接 `GET /api/chat` 返回 404/405 类错误并不代表聊天接口不能用。
 - `vercel.json` 的 `includeFiles` 已按 Vercel schema 改为字符串格式。
-- V3.1.0 起上游切换为 DeepSeek：`fast` 与 `pro` 默认都使用 `deepseek-flash`（DeepSeek V4.1 Flash），`fast` 关闭思考模式，`pro` 开启思考模式；思考内容不展示给用户。
+- V3.1.0 起上游切换为 OpenRouter：`fast` 与 `pro` 默认都使用 `deepseek/deepseek-v4.1-flash`，`fast` 关闭思考，`pro` 开启思考；思考内容不返回给用户。
 - 打开页与对话页顶部有下线提醒：本项目将于 2027-01-17 下线，引导用户改用豆包或 DeepSeek。
 - 前端展示模型名已隐藏，不再显示具体模型名称。
 - 聊天内容已支持 Markdown 渲染，减少普通用户看到 `*`、`-` 等标记时的困惑。
@@ -58,8 +58,8 @@ MiniChatV 是一个部署在 Vercel 上的复古终端风格聊天前端，前�
 
 - GitHub `main` 分支 push 后会触发 Vercel 自动部署。
 - 优先使用 `FAST_MODEL`、`PRO_MODEL`；旧的 `QUICK_MODEL` / `THINKING_MODEL` / `BALANCED_MODEL` 仍兼容，但 `LITE_MODEL` 不再读取。
-- 上游密钥读取 `DEEPSEEK_API_KEY`；旧的 `OPENAI_API_KEY`（Gemini Key）不再读取。
-- Vercel 上若残留 `FAST_MODEL` / `PRO_MODEL` 为 `gemini-*`，会覆盖代码默认值，需要改为 `deepseek-flash` 或删除。
+- 上游密钥优先读取 `OPENROUTER_API_KEY`，未设置时读取历史变量名 `OPENAI_API_KEY`（Vercel 上当前存放的是 OpenRouter Key）。
+- Vercel 上的 `FAST_MODEL` / `PRO_MODEL` 会覆盖代码默认值，当前已设为 `deepseek/deepseek-v4.1-flash`。
 - GitHub check 里出现 “No GitHub account was found matching the commit author email address”，原因是提交作者邮箱没有匹配 GitHub 账号；解决方式是把本地 git author email 改成 GitHub 账号邮箱或 noreply 邮箱后重新提交。
 
 ## 后续升级方向

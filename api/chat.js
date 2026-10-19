@@ -11,16 +11,18 @@ const {
   QUICK_MODEL,
   THINKING_MODEL,
   SYSTEM_PROMPT = 'You are a concise assistant.',
-  DEEPSEEK_API_KEY,
-  DEEPSEEK_BASE_URL,
+  OPENROUTER_API_KEY,
+  OPENAI_API_KEY,
+  OPENROUTER_BASE_URL,
   BRAVE_SEARCH_API_KEY,
   DEFAULT_SOUL_MODE = 'machine'
 } = process.env;
 
 const firstConfigured = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim();
-const UPSTREAM_BASE_URL = (firstConfigured(DEEPSEEK_BASE_URL) || 'https://api.deepseek.com').replace(/\/+$/, '');
-// `deepseek-flash` is DeepSeek's official alias for the latest Flash model (currently V4.1 Flash).
-const DEFAULT_MODEL = 'deepseek-flash';
+// OpenRouter key; `OPENAI_API_KEY` is the historical variable name still used on Vercel.
+const UPSTREAM_API_KEY = firstConfigured(OPENROUTER_API_KEY, OPENAI_API_KEY);
+const UPSTREAM_BASE_URL = (firstConfigured(OPENROUTER_BASE_URL) || 'https://openrouter.ai/api/v1').replace(/\/+$/, '');
+const DEFAULT_MODEL = 'deepseek/deepseek-v4.1-flash';
 const FAST_ROUTE_MODEL = firstConfigured(FAST_MODEL, QUICK_MODEL) || DEFAULT_MODEL;
 const PRO_ROUTE_MODEL = firstConfigured(PRO_MODEL, THINKING_MODEL, BALANCED_MODEL, MODEL) || DEFAULT_MODEL;
 const VALID_SOUL_MODES = new Set(['machine', 'gentle', 'pro', 'sharp', 'savage']);
@@ -644,7 +646,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: { message: 'Method Not Allowed' } });
   }
 
-  if (!DEEPSEEK_API_KEY) {
+  if (!UPSTREAM_API_KEY) {
     scheduleAuditLog(
       buildAuditEvent(req, res, {
         eventType: 'chat_request',
@@ -655,7 +657,7 @@ export default async function handler(req, res) {
         errorType: 'missing_api_key'
       })
     );
-    return res.status(500).json({ error: { message: 'DEEPSEEK_API_KEY is required' } });
+    return res.status(500).json({ error: { message: 'OPENROUTER_API_KEY is required' } });
   }
 
   try {
@@ -709,8 +711,8 @@ export default async function handler(req, res) {
       model,
       messages,
       stream: true,
-      // Fast route skips chain-of-thought for latency; Pro route keeps DeepSeek thinking mode on.
-      thinking: { type: route.tier === 'fast' ? 'disabled' : 'enabled' }
+      // Fast route skips chain-of-thought for latency; Pro route keeps thinking on but does not stream it back.
+      reasoning: route.tier === 'fast' ? { enabled: false } : { enabled: true, exclude: true }
     };
 
     const url = `${UPSTREAM_BASE_URL}/chat/completions`;
@@ -732,7 +734,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`
+        Authorization: `Bearer ${UPSTREAM_API_KEY}`,
+        'X-Title': 'MiniChatV'
       },
       body: JSON.stringify(body)
     });
@@ -774,7 +777,7 @@ export default async function handler(req, res) {
         if (!data || data === '[DONE]') continue;
         try {
           const upstreamChunk = JSON.parse(data);
-          // Only forward the final answer; `reasoning_content` (thinking) is not shown to users.
+          // Only forward the final answer; reasoning text is never shown to users.
           const text = upstreamChunk?.choices?.[0]?.delta?.content;
           if (!text) continue;
 

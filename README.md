@@ -24,8 +24,8 @@ npm install
 # 启动前端开发服务器（默认代理到 8787）
 npm run dev
 
-# 另开终端启动后端代理（需要 DEEPSEEK_API_KEY；在线搜索需要 BRAVE_SEARCH_API_KEY）
-DEEPSEEK_API_KEY=... npm run start
+# 另开终端启动后端代理（需要 OPENROUTER_API_KEY；在线搜索需要 BRAVE_SEARCH_API_KEY）
+OPENROUTER_API_KEY=... npm run start
 ```
 
 在开发时可使用 `.env` 文件存储密钥，或直接在命令行导出环境变量。
@@ -41,7 +41,7 @@ npm run start
 
 ## Docker 部署
 
-1. 复制 `.env.example` 为 `.env`，填写真实的 `DEEPSEEK_API_KEY` 及其他配置。
+1. 复制 `.env.example` 为 `.env`，填写真实的 `OPENROUTER_API_KEY` 及其他配置。
 2. 构建并启动容器：
 
    ```bash
@@ -68,10 +68,10 @@ Install Command: npm install
 并在 Vercel 环境变量中至少设置：
 
 ```bash
-DEEPSEEK_API_KEY=你的 DeepSeek API 密钥
+OPENROUTER_API_KEY=你的 OpenRouter API 密钥   # 也兼容旧变量名 OPENAI_API_KEY
 BRAVE_SEARCH_API_KEY=你的 Brave Search API 密钥   # 可选；启用在线搜索
-FAST_MODEL=deepseek-flash              # 可选；快速路由（关闭思考模式）
-PRO_MODEL=deepseek-flash               # 可选；默认路由（开启思考模式）
+FAST_MODEL=deepseek/deepseek-v4.1-flash   # 可选；快速路由（关闭思考）
+PRO_MODEL=deepseek/deepseek-v4.1-flash    # 可选；默认路由（开启思考）
 DEFAULT_SOUL_MODE=machine              # 可选: machine/gentle/pro/sharp/savage
 SYSTEM_PROMPT=You are a concise assistant.   # 可选
 AUDIT_LOG_ENDPOINT=https://audit.xtvv.com/ingest   # 可选；启用访问审计
@@ -84,11 +84,11 @@ AUDIT_LOG_TIMEOUT_MS=800                          # 可选；审计投递超时
 
 | 变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| `DEEPSEEK_API_KEY` | 必填，DeepSeek API 密钥 | 无 |
-| `DEEPSEEK_BASE_URL` | 可选，DeepSeek（OpenAI 兼容）接口地址 | `https://api.deepseek.com` |
+| `OPENROUTER_API_KEY` | 必填，OpenRouter API 密钥；未设置时读取旧变量名 `OPENAI_API_KEY` | 无 |
+| `OPENROUTER_BASE_URL` | 可选，OpenRouter（OpenAI 兼容）接口地址 | `https://openrouter.ai/api/v1` |
 | `BRAVE_SEARCH_API_KEY` | 可选，Brave Search API 密钥；用于新闻、吃瓜、游戏实时/攻略搜索 | 空 |
-| `FAST_MODEL` | 快速路由模型（短问候、短翻译、简短改写、时间类轻量问题；关闭思考模式） | `deepseek-flash` |
-| `PRO_MODEL` | 默认路由模型（普通问答、代码、分析、数学、高风险问题；开启思考模式） | `deepseek-flash` |
+| `FAST_MODEL` | 快速路由模型（短问候、短翻译、简短改写、时间类轻量问题；关闭思考） | `deepseek/deepseek-v4.1-flash` |
+| `PRO_MODEL` | 默认路由模型（普通问答、代码、分析、数学、高风险问题；开启思考） | `deepseek/deepseek-v4.1-flash` |
 | `QUICK_MODEL` | 旧配置兼容；未设置 `FAST_MODEL` 时作为快速模型 | 空 |
 | `THINKING_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` 时作为深度模型 | 空 |
 | `BALANCED_MODEL` | 旧配置兼容；未设置 `PRO_MODEL` / `THINKING_MODEL` 时作为深度模型 | 空 |
