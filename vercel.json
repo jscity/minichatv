@@ -1,23 +1,9 @@
 {
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/chat.js": {
-      "includeFiles": "SOUL*.md"
-    },
-    "api/unlock.js": {
-      "includeFiles": "PASSCODE.md"
-    }
-  },
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "outputDirectory": "offline",
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
-    }
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }

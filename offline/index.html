@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mini Chat 已下线</title>
+<style>
+  :root { --bg: #f6f4ef; --fg: #1f1d1a; --muted: #6b665e; --accent: #3b6df0; --card: #fff; --line: #e4dfd5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161513; --fg: #ece8e1; --muted: #a39d93; --accent: #7c9cff; --card: #201f1c; --line: #33312d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+         background: var(--bg); color: var(--fg);
+         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  main { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line);
+         border-radius: 16px; padding: 28px 24px; text-align: center; }
+  h1 { font-size: 22px; margin: 0 0 12px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  .count { font-size: 40px; font-weight: 700; color: var(--accent); margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+  a.btn { display: block; margin-top: 16px; padding: 12px; border-radius: 10px; background: var(--accent);
+          color: #fff; text-decoration: none; font-weight: 600; }
+  a.alt { display: inline-block; margin-top: 12px; color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mini Chat 已下线</h1>
+  <p>感谢一直以来的使用。以后聊天请改用豆包或 DeepSeek。</p>
+  <div class="count" id="n">10</div>
+  <p>秒后自动跳转到豆包</p>
+  <a class="btn" href="https://www.doubao.com/">现在就去豆包</a>
+  <a class="alt" href="https://chat.deepseek.com/">或者用 DeepSeek</a>
+</main>
+<script>
+  var n = 10, el = document.getElementById('n');
+  var t = setInterval(function () {
+    n -= 1; el.textContent = n;
+    if (n <= 0) { clearInterval(t); location.replace('https://www.doubao.com/'); }
+  }, 1000);
+</script>
+</body>
+</html>
